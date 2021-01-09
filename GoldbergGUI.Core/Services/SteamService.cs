@@ -75,13 +75,23 @@ namespace GoldbergGUI.Core.Services
         {
             var listOfAppsByName = _cache.Search(x => x.Name)
                 .SetCulture(StringComparison.OrdinalIgnoreCase)
-                .ContainingAll(name.Split(' ')).ToHashSet();
+                .ContainingAll(name.Split(' '));
+            return listOfAppsByName;
+            /*var filteredList = new HashSet<SteamApp>();
             foreach (var steamApp in listOfAppsByName)
             {
-                var sa = Task.Run(async () => await AppDetails.GetAsync(steamApp.AppId).ConfigureAwait(false)).Result;
-                if (sa.Type != AppType.Game) listOfAppsByName.Remove(steamApp);
+                try
+                {
+                    var task = AppDetails.GetAsync(steamApp.AppId);
+                    var details = await task.ConfigureAwait(false);
+                    if (details?.Type != null && details.Type == AppType.Game) filteredList.Add(steamApp);
+                }
+                catch (Exception e)
+                {
+                    _log.Debug($"{e.GetType()}: {steamApp}");
+                }
             }
-            return listOfAppsByName;
+            return filteredList;*/
         }
 
         public SteamApp GetAppByName(string name)

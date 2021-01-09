@@ -8,6 +8,7 @@
  using Microsoft.Win32;
  using MvvmCross.Commands;
  using MvvmCross.Logging;
+ using MvvmCross.Navigation;
  using MvvmCross.ViewModels;
 
  namespace GoldbergGUI.Core.ViewModels
@@ -15,6 +16,7 @@
     // ReSharper disable once ClassNeverInstantiated.Global
     public class MainViewModel : MvxViewModel
     {
+        private readonly IMvxNavigationService _navigationService;
         private string _dllPath;
         private string _gameName;
 
@@ -34,11 +36,13 @@
         private bool _mainWindowEnabled;
         private bool _goldbergApplied;
 
-        public MainViewModel(ISteamService steam, IGoldbergService goldberg, IMvxLog log)
+        public MainViewModel(ISteamService steam, IGoldbergService goldberg, IMvxLogProvider logProvider, 
+            IMvxNavigationService navigationService)
         {
             _steam = steam;
             _goldberg = goldberg;
-            _log = log;
+            _log = logProvider.GetLogFor(typeof(MainViewModel));
+            _navigationService = navigationService;
         }
 
         public override void Prepare()
@@ -212,15 +216,16 @@
             await ReadConfig().ConfigureAwait(false);
         }
 
-        public IMvxCommand FindIdCommand => new MvxCommand(FindId);
+        public IMvxCommand FindIdCommand => new MvxAsyncCommand(FindId);
 
-        private void FindId()
+        private async Task FindId()
         {
             if (GameName.Contains("Game name..."))
             {
                 _log.Error("No game name entered!");
                 return;
             }
+            MainWindowEnabled = false;
             var appByName = _steam.GetAppByName(_gameName);
             if (appByName != null)
             {
@@ -229,8 +234,26 @@
             }
             else
             {
-                _log.Warn("Steam app could not be found!");
+                var list = _steam.GetListOfAppsByName(GameName);
+                var steamApps = list as SteamApp[] ?? list.ToArray();
+                if (steamApps.Length == 1)
+                {
+                    GameName = steamApps[0].Name;
+                    AppId = steamApps[0].AppId;
+                }
+                else
+                {
+                    var navigateTask = _navigationService
+                        .Navigate<SearchResultViewModel, IEnumerable<SteamApp>, SteamApp>(steamApps);
+                    var navigateResult = await navigateTask.ConfigureAwait(false);
+                    if (navigateResult != null)
+                    {
+                        GameName = navigateResult.Name;
+                        AppId = navigateResult.AppId;
+                    }
+                }
             }
+            MainWindowEnabled = true;
         }
 
         //public IMvxCommand GetNameByIdCommand => new MvxAsyncCommand(GetNameById);
