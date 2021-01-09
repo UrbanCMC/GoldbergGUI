@@ -24,7 +24,7 @@
                     </Grid.RowDefinitions>
                     <TextBox Text="{Binding DllPath, Mode=OneWay}" TextWrapping="Wrap" Margin="0,0,85,5" VerticalAlignment="Center" Padding="1,0,0,0" Height="20" IsEnabled="False"/>
                     <Button Content="Select..." Command="{Binding OpenFileCommand}" HorizontalAlignment="Right" Width="80" Height="20" Grid.Row="0" Margin="0,0,0,5"/>
-                    <Button Content="Generate steam_interfaces.txt" Command="{Binding GenerateSteamInterfacesCommand}" Height="20" Grid.Row="1" Margin="0,5,0,5" />
+                    <Button Content="Generate steam_interfaces.txt" IsEnabled="{Binding SteamInterfacesTxtExists, UpdateSourceTrigger=PropertyChanged}" Command="{Binding GenerateSteamInterfacesCommand}" Height="20" Grid.Row="1" Margin="0,5,0,5" />
                     <TextBox Text="{Binding GameName, Mode=TwoWay}" TextWrapping="Wrap" VerticalAlignment="Center" Padding="1,0,0,0" Grid.Row="2" Margin="0,5,215,5" Height="20"/>
                     <Button Content="Find ID..." Command="{Binding FindIdCommand}" Width="80" Grid.Row="2" Margin="0,5,130,5" HorizontalAlignment="Right" Height="20"/>
                     <TextBox Text="{Binding AppId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="1,0,0,0" Grid.Row="2" Width="125" Margin="0,5,0,5" Height="20"/>
@@ -42,9 +42,13 @@
                 </Grid>
             </TabItem>
             <!-- Advanced -->
-            <TabItem Header="Advanced">
-                <Grid HorizontalAlignment="Left" Margin="10,20,10,10" >
-                    <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Grid.Row="0">
+            <TabItem Header="Advanced" IsEnabled="{Binding DllSelected, UpdateSourceTrigger=PropertyChanged}">
+                <Grid HorizontalAlignment="Stretch" Margin="10,20,10,10" >
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel IsEnabled="False" HorizontalAlignment="Left" Orientation="Horizontal" Grid.Row="0" VerticalAlignment="Top" Margin="0,0,0,0">
                         <StackPanel Margin="0,0,5,0">
                             <Button Content="Subscribed Groups" Width="120" Height="20" Margin="0,0,0,5"/>
                             <Button Content="Mods" Width="120" Height="20" Margin="0,5,0,5"/>
@@ -56,22 +60,42 @@
                             <Button Content="Controller" Width="120" Height="20" Margin="0,5,0,5"/>
                         </StackPanel>
                     </StackPanel>
+                    <GroupBox Header="Miscellaneous" Grid.Row="1" Margin="0,5,0,0">
+                        <StackPanel Margin="5,5,5,5">
+                            <CheckBox Content="Offline" IsChecked="{Binding Offline, Mode=TwoWay}" Height="20" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
+                            <CheckBox Content="Disable Networking" IsChecked="{Binding DisableNetworking, Mode=TwoWay}" Height="20" VerticalContentAlignment="Center"/>
+                            <CheckBox Content="Disable Overlay" IsChecked="{Binding DisableOverlay, Mode=TwoWay}" Height="20" VerticalContentAlignment="Center"/>
+                        </StackPanel>
+                    </GroupBox>
                 </Grid>
             </TabItem>
             <!-- Settings -->
-            <TabItem Header="Settings">
+            <TabItem Header="Global Settings">
                 <StackPanel Margin="10,20,10,10">
                     <Grid Margin="0,0,0,5">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <TextBox Text="{Binding AccountName, Mode=TwoWay}" Margin="0,0,2.5,0" Height="20"/>
-                        <TextBox Text="{Binding SteamId, Mode=TwoWay}" Grid.Column="1" Margin="2.5,0,0,0" Height="20"/>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+                        <Label Content="Account name" HorizontalAlignment="Left" Margin="0,0,10,0" />
+                        <TextBox Text="{Binding AccountName, Mode=TwoWay}" Height="20" Grid.Row="0" Grid.Column="1"/>
+                        <Label Content="Steam64ID" HorizontalAlignment="Left" Grid.Row="1"
+                               Grid.Column="0" Margin="0,0,10,0" />
+                        <TextBox Text="{Binding SteamId, Mode=TwoWay}" Grid.Column="1" Height="20" Grid.Row="1"/>
                     </Grid>
-                    <CheckBox Content="Offline" IsChecked="{Binding Offline, Mode=TwoWay}" Margin="0,5,0,5" Height="20" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
-                    <CheckBox Content="Disable Networking" IsChecked="{Binding DisableNetworking, Mode=TwoWay}" Margin="0,5,0,5" Height="20" VerticalContentAlignment="Center"/>
-                    <CheckBox Content="Disable Overlay" IsChecked="{Binding DisableOverlay, Mode=TwoWay}" Margin="0,5,0,5" Height="20" VerticalContentAlignment="Center"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="About" HorizontalAlignment="Center" Height="20" VerticalAlignment="Center" Width="54">
+                <StackPanel Margin="10,20,10,10">
+                    <Label Content="GoldbergGUI" VerticalAlignment="Stretch"/>
+                    <Label Content="Version 0.1.0"/>
+                    <Label Content="Developed by Jeddunk"/>
+                    <Label Content="Licensed under GNU GPLv3"/>
+                    <Label Content="Goldberg Emulator is owned by Mr. Goldberg and licensed under GNU LGPLv3" />
                 </StackPanel>
             </TabItem>
         </TabControl>
@@ -82,6 +106,7 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
+            <CheckBox Content="Goldberg applied" IsChecked="{Binding GoldbergApplied}" IsEnabled="False" Height="20" />
             <Button Content="Save" Command="{Binding SaveConfigCommand}" Width="80" Grid.Column="1" Height="20" Margin="0,0,5,0"/>
             <Button Content="Reset" Command="{Binding ResetConfigCommand}" Width="80" Grid.Column="2" Height="20"/>
         </Grid>

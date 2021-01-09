@@ -32,6 +32,7 @@
         private readonly IGoldbergService _goldberg;
         private readonly IMvxLog _log;
         private bool _mainWindowEnabled;
+        private bool _goldbergApplied;
 
         public MainViewModel(ISteamService steam, IGoldbergService goldberg, IMvxLog log)
         {
@@ -102,6 +103,8 @@
             {
                 _dlcs = value;
                 RaisePropertyChanged(() => DLCs);
+                RaisePropertyChanged(() => DllSelected);
+                RaisePropertyChanged(() => SteamInterfacesTxtExists);
             }
         }
 
@@ -165,8 +168,29 @@
             }
         }
 
-        // COMMANDS //
+        public bool GoldbergApplied
+        {
+            get => _goldbergApplied;
+            set
+            {
+                _goldbergApplied = value;
+                RaisePropertyChanged(() => GoldbergApplied);
+            }
+        }
+
+        public bool SteamInterfacesTxtExists
+        {
+            get
+            {
+                var dllPathDirExists = GetDllPathDir(out var dirPath);
+                return dllPathDirExists && !File.Exists(Path.Combine(dirPath, "steam_interfaces.txt"));
+            }
+        }
+
+        public bool DllSelected => !DllPath.Contains("Path to game's steam_api(64).dll");
         
+        // COMMANDS //
+
         public IMvxCommand OpenFileCommand => new MvxAsyncCommand(OpenFile);
 
         private async Task OpenFile()
@@ -241,7 +265,7 @@
 
         private async Task SaveConfig()
         {
-            if (DllPath.Contains("Path to game's steam_api(64).dll"))
+            if (!DllSelected)
             {
                 _log.Error("No DLL selected!");
                 return;
@@ -249,7 +273,13 @@
             _log.Info("Saving...");
             if (!GetDllPathDir(out var dirPath)) return;
             MainWindowEnabled = false;
-            await _goldberg.Save(dirPath, AppId, DLCs.ToList()).ConfigureAwait(false);
+            await _goldberg.Save(dirPath,
+                AppId,
+                DLCs.ToList(),
+                Offline,
+                DisableNetworking,
+                DisableOverlay).ConfigureAwait(false);
+            GoldbergApplied = _goldberg.GoldbergApplied(dirPath);
             MainWindowEnabled = true;
         }
 
@@ -257,7 +287,7 @@
 
         private async Task ResetConfig()
         {
-            if (DllPath.Contains("Path to game's steam_api(64).dll"))
+            if (!DllSelected)
             {
                 _log.Error("No DLL selected!");
                 return;
@@ -272,15 +302,20 @@
 
         private async Task GenerateSteamInterfaces()
         {
-            if (DllPath.Contains("Path to game's steam_api(64).dll"))
+            if (!DllSelected)
             {
                 _log.Error("No DLL selected!");
                 return;
             }
-
             _log.Info("Generate steam_interfaces.txt...");
             MainWindowEnabled = false;
-            await _goldberg.GenerateInterfacesFile(DllPath).ConfigureAwait(false);
+            GetDllPathDir(out var dirPath);
+            if (File.Exists(Path.Combine(dirPath, "steam_api_o.dll")))
+              await _goldberg.GenerateInterfacesFile(Path.Combine(dirPath, "steam_api_o.dll")).ConfigureAwait(false);
+            else if (File.Exists(Path.Combine(dirPath, "steam_api64_o.dll")))
+              await _goldberg.GenerateInterfacesFile(Path.Combine(dirPath, "steam_api64_o.dll")).ConfigureAwait(false);
+            else await _goldberg.GenerateInterfacesFile(DllPath).ConfigureAwait(false);
+            await RaisePropertyChanged(() => SteamInterfacesTxtExists).ConfigureAwait(false);
             MainWindowEnabled = true;
         }
         
@@ -304,14 +339,17 @@
             if (!GetDllPathDir(out var dirPath)) return;
             MainWindowEnabled = false;
             List<SteamApp> dlcList;
-            (AppId, dlcList) = await _goldberg.Read(dirPath).ConfigureAwait(false);
+            (AppId, dlcList, Offline, DisableNetworking, DisableOverlay) = 
+                await _goldberg.Read(dirPath).ConfigureAwait(false);
             DLCs = new ObservableCollection<SteamApp>(dlcList);
+            GoldbergApplied = _goldberg.GoldbergApplied(dirPath);
+            await RaisePropertyChanged(() => SteamInterfacesTxtExists).ConfigureAwait(false);
             MainWindowEnabled = true;
         }
 
         private bool GetDllPathDir(out string dirPath)
         {
-            if (DllPath.Contains("Path to game's steam_api(64).dll"))
+            if (!DllSelected)
             {
                 _log.Error("No DLL selected!");
                 dirPath = null;
