@@ -541,3 +541,4 @@ MigrationBackup/
 .ionide/
 
 # End of https://www.toptal.com/developers/gitignore/api/intellij,rider,visualstudio,dotnetcore,windows
+/GoldbergGUI.Core/Utils/Secrets.cs
