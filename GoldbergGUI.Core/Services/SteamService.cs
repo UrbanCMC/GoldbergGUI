@@ -26,16 +26,35 @@ namespace GoldbergGUI.Core.Services
         public SteamApp GetAppById(int appid);
         public Task<List<SteamApp>> GetListOfDlc(SteamApp steamApp, bool useSteamDb);
     }
-    
+
     // ReSharper disable once UnusedType.Global
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class SteamService : ISteamService
     {
-        private const string CachePath1 = "steamapps.json";
-        //private const string CachePath1 = "steamapps_games.json";
-        //private const string CachePath2 = "steamapps_dlc.json";
-        private const string SteamUri1 = "https://api.steampowered.com/ISteamApps/GetAppList/v2/";
-        //private const string SteamUri1 = "https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=1&key=";
-        //private const string SteamUri2 = "https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=0&include_dlc=1&key=";
+        // ReSharper disable StringLiteralTypo
+        private readonly List<(string filename, string uri, string type)> _caches = new List<(string, string, string)>
+        {
+            (
+                "steamapps.json",
+                "https://api.steampowered.com/ISteamApps/GetAppList/v2/",
+                null
+            ),
+            (
+                "steamapps_games.json",
+                "https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=1&key=" +
+                Secrets.SteamWebApiKey(),
+                AppType.Game
+            ),
+            (
+                "steamapps_dlc.json",
+                "https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=0&include_dlc=1&key=" +
+                Secrets.SteamWebApiKey(),
+                AppType.DLC
+            )
+        };
+        // ReSharper enable StringLiteralTypo
+
+        private static readonly Secrets Secrets = new Secrets();
 
         private const string UserAgent =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
@@ -43,14 +62,15 @@ namespace GoldbergGUI.Core.Services
 
         private HashSet<SteamApp> _cache = new HashSet<SteamApp>();
         private IMvxLog _log;
-        
+
         public async Task Initialize(IMvxLog log)
         {
-            var secrets = new Secrets();
+            var path = _caches.First().filename;
+            var uri = _caches.First().uri;
             _log = log;
             _log.Info("Updating cache...");
-            var updateNeeded = DateTime.Now.Subtract(File.GetLastWriteTimeUtc(CachePath1)).TotalDays >= 1;
-            var cacheString = await GetCache(updateNeeded, SteamUri1, CachePath1).ConfigureAwait(false);
+            var updateNeeded = DateTime.Now.Subtract(File.GetLastWriteTimeUtc(path)).TotalDays >= 1;
+            var cacheString = await GetCache(updateNeeded, uri, path).ConfigureAwait(false);
             SteamApps steamApps;
             try
             {
@@ -58,30 +78,29 @@ namespace GoldbergGUI.Core.Services
             }
             catch (JsonException)
             {
-                cacheString = await GetCache(true, SteamUri1, CachePath1).ConfigureAwait(false);
+                cacheString = await GetCache(true, uri, path).ConfigureAwait(false);
                 steamApps = JsonSerializer.Deserialize<SteamApps>(cacheString);
             }
+
             _cache = new HashSet<SteamApp>(steamApps.AppList.Apps);
             _log.Info("Loaded cache into memory!");
         }
 
         private async Task<string> GetCache(bool updateNeeded, string steamUri, string cachePath)
         {
-            var secrets = new Secrets();
             string cacheString;
             if (updateNeeded)
             {
                 _log.Info("Getting content from API...");
                 var client = new HttpClient();
-                var httpCall = client.GetAsync(steamUri + secrets.SteamWebApiKey());
-                var response = await httpCall.ConfigureAwait(false);
-                var readAsStringAsync = response.Content.ReadAsStringAsync();
-                var responseBody = await readAsStringAsync.ConfigureAwait(false);
-                _log.Info("Got content from API successfully. Writing to file...");
+                var response = await client.GetAsync(steamUri).ConfigureAwait(false);
+                var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
+                _log.Info("Got content from API successfully. Writing to file...");
                 await File.WriteAllTextAsync(cachePath, responseBody, Encoding.UTF8).ConfigureAwait(false);
-                cacheString = responseBody;
+
                 _log.Info("Cache written to file successfully.");
+                cacheString = responseBody;
             }
             else
             {
@@ -119,7 +138,7 @@ namespace GoldbergGUI.Core.Services
         {
             _log.Info($"Trying to get app {name}");
             var comparableName = Regex.Replace(name, Misc.SpecialCharsRegex, "").ToLower();
-            var app = _cache.FirstOrDefault(x => x.CompareName(comparableName)); 
+            var app = _cache.FirstOrDefault(x => x.CompareName(comparableName));
             if (app != null) _log.Info($"Successfully got app {app}");
             return app;
         }

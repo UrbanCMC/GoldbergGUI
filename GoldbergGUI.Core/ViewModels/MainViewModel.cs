@@ -38,13 +38,15 @@ namespace GoldbergGUI.Core.ViewModels
         private bool _goldbergApplied;
         private ObservableCollection<string> _steamLanguages;
         private string _selectedLanguage;
+        private readonly IMvxLogProvider _logProvider;
 
         public MainViewModel(ISteamService steam, IGoldbergService goldberg, IMvxLogProvider logProvider,
             IMvxNavigationService navigationService)
         {
             _steam = steam;
             _goldberg = goldberg;
-            _log = logProvider.GetLogFor(typeof(MainViewModel));
+            _logProvider = logProvider;
+            _log = logProvider.GetLogFor<MainViewModel>();
             _navigationService = navigationService;
         }
 
@@ -59,9 +61,9 @@ namespace GoldbergGUI.Core.ViewModels
                 {
                     SteamLanguages = new ObservableCollection<string>(_goldberg.Languages());
                     ResetForm();
-                    await _steam.Initialize(_log).ConfigureAwait(false);
+                    await _steam.Initialize(_logProvider.GetLogFor<SteamService>()).ConfigureAwait(false);
                     var (accountName, userSteamId, language) =
-                        await _goldberg.Initialize(_log).ConfigureAwait(false);
+                        await _goldberg.Initialize(_logProvider.GetLogFor<GoldbergService>()).ConfigureAwait(false);
                     AccountName = accountName;
                     SteamId = userSteamId;
                     SelectedLanguage = language;
