@@ -17,29 +17,35 @@ namespace GoldbergGUI.Core.Services
     // does file copy stuff
     public interface IGoldbergService
     {
-        public Task<(string accountName, long userSteamId)> Initialize(IMvxLog log);
-        public Task<(int appId, List<SteamApp> dlcList, bool offline, bool disableNetworking, bool disableOverlay)>
-            Read(string path);
-        public Task Save(string path, int appId, List<SteamApp> dlcList,
-            bool offline, bool disableNetworking, bool disableOverlay);
+        public Task<(string accountName, long userSteamId, string language)> Initialize(IMvxLog log);
+        public Task<GoldbergConfiguration> Read(string path);
+        public Task Save(string path, GoldbergConfiguration configuration);
+        public Task<(string accountName, long steamId, string language)> GetGlobalSettings();
+        public Task SetGlobalSettings(string accountName, long userSteamId, string language);
         public bool GoldbergApplied(string path);
         public Task<bool> Download();
         public Task Extract(string archivePath);
         public Task GenerateInterfacesFile(string filePath);
+        public List<string> Languages();
     }
-    
+
     // ReSharper disable once UnusedType.Global
     public class GoldbergService : IGoldbergService
     {
         private IMvxLog _log;
         private const string GoldbergUrl = "https://mr_goldberg.gitlab.io/goldberg_emulator/";
+        private const string DefaultLanguage = "english";
         private readonly string _goldbergZipPath = Path.Combine(Directory.GetCurrentDirectory(), "goldberg.zip");
         private readonly string _goldbergPath = Path.Combine(Directory.GetCurrentDirectory(), "goldberg");
+
         private static readonly string GlobalSettingsPath =
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "Goldberg SteamEmu Saves");
+
         private readonly string _accountNamePath = Path.Combine(GlobalSettingsPath, "settings/account_name.txt");
         private readonly string _userSteamIdPath = Path.Combine(GlobalSettingsPath, "settings/user_steam_id.txt");
+        private readonly string _languagePath = Path.Combine(GlobalSettingsPath, "settings/language.txt");
+
         private readonly List<string> _interfaceNames = new List<string>
         {
             "SteamClient",
@@ -68,33 +74,53 @@ namespace GoldbergGUI.Core.Services
             "STEAMVIDEO_INTERFACE_V"
         };
 
-
         // Call Download
         // Get global settings
-        public async Task<(string accountName, long userSteamId)> Initialize(IMvxLog log)
+        public async Task<(string accountName, long userSteamId, string language)> Initialize(IMvxLog log)
         {
             _log = log;
 
             var download = await Download().ConfigureAwait(false);
             if (download) await Extract(_goldbergZipPath).ConfigureAwait(false);
+            return await GetGlobalSettings().ConfigureAwait(false);
+        }
 
+        public async Task<(string accountName, long steamId, string language)> GetGlobalSettings()
+        {
             var accountName = "Account name...";
             long steamId = -1;
+            var language = DefaultLanguage;
             await Task.Run(() =>
             {
                 if (File.Exists(_accountNamePath)) accountName = File.ReadLines(_accountNamePath).First().Trim();
                 if (File.Exists(_userSteamIdPath) &&
-                    !long.TryParse(File.ReadLines(_userSteamIdPath).First().Trim(), out steamId))
+                    !long.TryParse(File.ReadLines(_userSteamIdPath).First().Trim(), out steamId) &&
+                    steamId < 76561197960265729 && steamId > 76561202255233023)
                     _log.Error("Invalid User Steam ID!");
+                if (File.Exists(_languagePath)) language = File.ReadLines(_languagePath).First().Trim();
             }).ConfigureAwait(false);
+            return (accountName, steamId, language);
+        }
 
-            return (accountName, steamId);
+        public async Task SetGlobalSettings(string accountName, long userSteamId, string language)
+        {
+            if (accountName != null && accountName != "Account name...")
+                await File.WriteAllTextAsync(_accountNamePath, accountName).ConfigureAwait(false);
+            else
+                await File.WriteAllTextAsync(_accountNamePath, "Goldberg").ConfigureAwait(false);
+            if (userSteamId >= 76561197960265729 && userSteamId <= 76561202255233023)
+                await File.WriteAllTextAsync(_userSteamIdPath, userSteamId.ToString()).ConfigureAwait(false);
+            else
+                await Task.Run(() => File.Delete(_userSteamIdPath)).ConfigureAwait(false);
+            if (language != null)
+                await File.WriteAllTextAsync(_languagePath, language).ConfigureAwait(false);
+            else
+                await File.WriteAllTextAsync(_languagePath, DefaultLanguage).ConfigureAwait(false);
         }
 
         // If first time, call GenerateInterfaces
         // else try to read config
-        public async Task<(int appId, List<SteamApp> dlcList, bool offline, bool disableNetworking, bool disableOverlay)> 
-            Read(string path)
+        public async Task<GoldbergConfiguration> Read(string path)
         {
             var appId = -1;
             var dlcList = new List<SteamApp>();
@@ -104,6 +130,7 @@ namespace GoldbergGUI.Core.Services
                 await Task.Run(() => int.TryParse(File.ReadLines(steamAppidTxt).First().Trim(), out appId))
                     .ConfigureAwait(false);
             }
+
             var dlcTxt = Path.Combine(path, "steam_settings", "DLC.txt");
             if (File.Exists(dlcTxt))
             {
@@ -113,23 +140,29 @@ namespace GoldbergGUI.Core.Services
                 {
                     var match = expression.Match(line);
                     if (match.Success)
-                        dlcList.Add(new SteamApp {AppId = Convert.ToInt32(match.Groups["id"].Value),
-                            Name = match.Groups["name"].Value});
+                        dlcList.Add(new SteamApp
+                        {
+                            AppId = Convert.ToInt32(match.Groups["id"].Value),
+                            Name = match.Groups["name"].Value
+                        });
                 }
             }
-            return (appId, dlcList,
-                    File.Exists(Path.Combine(path, "steam_settings", "offline.txt")),
-                    File.Exists(Path.Combine(path, "steam_settings", "disable_networking.txt")),
-                    File.Exists(Path.Combine(path, "steam_settings", "disable_overlay.txt"))
-                    );
+
+            return new GoldbergConfiguration
+            {
+                AppId = appId,
+                DlcList = dlcList,
+                Offline = File.Exists(Path.Combine(path, "steam_settings", "offline.txt")),
+                DisableNetworking = File.Exists(Path.Combine(path, "steam_settings", "disable_networking.txt")),
+                DisableOverlay = File.Exists(Path.Combine(path, "steam_settings", "disable_overlay.txt"))
+            };
         }
 
         // If first time, rename original SteamAPI DLL to steam_api(64)_o.dll
         // If not, rename current SteamAPI DLL to steam_api(64).dll.backup
         // Copy Goldberg DLL to path
         // Save configuration files
-        public async Task Save(string path, int appId, List<SteamApp> dlcList, 
-            bool offline, bool disableNetworking, bool disableOverlay)
+        public async Task Save(string path, GoldbergConfiguration c)
         {
             // DLL setup
             const string x86Name = "steam_api";
@@ -149,15 +182,15 @@ namespace GoldbergGUI.Core.Services
             {
                 Directory.CreateDirectory(Path.Combine(path, "steam_settings"));
             }
-            
+
             // create steam_appid.txt
-            await File.WriteAllTextAsync(Path.Combine(path, "steam_appid.txt"), appId.ToString()).ConfigureAwait(false);
-            
+            await File.WriteAllTextAsync(Path.Combine(path, "steam_appid.txt"), c.AppId.ToString()).ConfigureAwait(false);
+
             // DLC
-            if (dlcList.Count > 0)
+            if (c.DlcList.Count > 0)
             {
                 var dlcString = "";
-                dlcList.ForEach(x => dlcString += $"{x}\n");
+                c.DlcList.ForEach(x => dlcString += $"{x}\n");
                 await File.WriteAllTextAsync(Path.Combine(path, "steam_settings", "DLC.txt"), dlcString)
                     .ConfigureAwait(false);
             }
@@ -166,37 +199,39 @@ namespace GoldbergGUI.Core.Services
                 if (File.Exists(Path.Combine(path, "steam_settings", "DLC.txt")))
                     File.Delete(Path.Combine(path, "steam_settings", "DLC.txt"));
             }
-            
+
             // Offline
-            if (offline)
+            if (c.Offline)
             {
-                await File.Create(Path.Combine(path, "steam_settings", "offline.txt")).DisposeAsync().ConfigureAwait(false);
+                await File.Create(Path.Combine(path, "steam_settings", "offline.txt")).DisposeAsync()
+                    .ConfigureAwait(false);
             }
             else
             {
                 File.Delete(Path.Combine(path, "steam_settings", "offline.txt"));
             }
-            
+
             // Disable Networking
-            if (disableNetworking)
+            if (c.DisableNetworking)
             {
-                await File.Create(Path.Combine(path, "steam_settings", "disable_networking.txt")).DisposeAsync().ConfigureAwait(false);
+                await File.Create(Path.Combine(path, "steam_settings", "disable_networking.txt")).DisposeAsync()
+                    .ConfigureAwait(false);
             }
             else
             {
                 File.Delete(Path.Combine(path, "steam_settings", "disable_networking.txt"));
             }
-            
+
             // Disable Overlay
-            if (disableOverlay)
+            if (c.DisableOverlay)
             {
-                await File.Create(Path.Combine(path, "steam_settings", "disable_overlay.txt")).DisposeAsync().ConfigureAwait(false);
+                await File.Create(Path.Combine(path, "steam_settings", "disable_overlay.txt")).DisposeAsync()
+                    .ConfigureAwait(false);
             }
             else
             {
                 File.Delete(Path.Combine(path, "steam_settings", "disable_overlay.txt"));
             }
-            
         }
 
         private void CopyDllFiles(string path, string name)
@@ -205,7 +240,7 @@ namespace GoldbergGUI.Core.Services
             var originalDll = Path.Combine(path, $"{name}_o.dll");
             var guiBackup = Path.Combine(path, $"{name}.dll.GOLDBERGGUIBACKUP");
             var goldbergDll = Path.Combine(_goldbergPath, $"{name}.dll");
-            
+
             if (!File.Exists(originalDll))
                 File.Move(steamApiDll, originalDll);
             else
@@ -213,6 +248,7 @@ namespace GoldbergGUI.Core.Services
                 File.Move(steamApiDll, guiBackup, true);
                 File.SetAttributes(guiBackup, FileAttributes.Hidden);
             }
+
             File.Copy(goldbergDll, steamApiDll);
         }
 
@@ -222,7 +258,7 @@ namespace GoldbergGUI.Core.Services
             var steamAppIdTxtExists = File.Exists(Path.Combine(path, "steam_appid.txt"));
             return steamSettingsDirExists && steamAppIdTxtExists;
         }
-        
+
         // Get webpage
         // Get job id, compare with local if exists, save it if false or missing
         // Get latest archive if mismatch, call Extract
@@ -313,6 +349,7 @@ namespace GoldbergGUI.Core.Services
                     FindInterfaces(ref result, dllContent, new Regex("STEAMCONTROLLER_INTERFACE_VERSION"));
                 }
             }
+
             var dirPath = Path.GetDirectoryName(filePath);
             if (dirPath == null) return;
             await using var destination = File.CreateText(dirPath + "/steam_interfaces.txt");
@@ -321,6 +358,37 @@ namespace GoldbergGUI.Core.Services
                 await destination.WriteLineAsync(s).ConfigureAwait(false);
             }
         }
+
+        public List<string> Languages() => new List<string>
+        {
+            DefaultLanguage,
+            "arabic",
+            "bulgarian",
+            "schinese",
+            "tchinese",
+            "czech",
+            "danish",
+            "dutch",
+            "finnish",
+            "french",
+            "german",
+            "greek",
+            "hungarian",
+            "italian",
+            "japanese",
+            "koreana",
+            "norwegian",
+            "polish",
+            "portuguese",
+            "brazilian",
+            "romanian",
+            "russian",
+            "spanish",
+            "swedish",
+            "thai",
+            "turkish",
+            "ukrainian"
+        };
 
         private static bool FindInterfaces(ref HashSet<string> result, string dllContent, Regex regex)
         {
@@ -332,6 +400,7 @@ namespace GoldbergGUI.Core.Services
                 //result += $@"{match.Value}\n";
                 result.Add(match.Value);
             }
+
             return success;
         }
     }

@@ -30,8 +30,12 @@ namespace GoldbergGUI.Core.Services
     // ReSharper disable once UnusedType.Global
     public class SteamService : ISteamService
     {
-        private const string CachePath = "steamapps.json";
-        private const string SteamUri = "https://api.steampowered.com/ISteamApps/GetAppList/v2/";
+        private const string CachePath1 = "steamapps.json";
+        //private const string CachePath1 = "steamapps_games.json";
+        //private const string CachePath2 = "steamapps_dlc.json";
+        private const string SteamUri1 = "https://api.steampowered.com/ISteamApps/GetAppList/v2/";
+        //private const string SteamUri1 = "https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=1&key=";
+        //private const string SteamUri2 = "https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=0&include_dlc=1&key=";
 
         private const string UserAgent =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
@@ -42,33 +46,50 @@ namespace GoldbergGUI.Core.Services
         
         public async Task Initialize(IMvxLog log)
         {
+            var secrets = new Secrets();
             _log = log;
             _log.Info("Updating cache...");
-            var updateNeeded = DateTime.Now.Subtract(File.GetLastWriteTimeUtc(CachePath)).TotalDays >= 1;
+            var updateNeeded = DateTime.Now.Subtract(File.GetLastWriteTimeUtc(CachePath1)).TotalDays >= 1;
+            var cacheString = await GetCache(updateNeeded, SteamUri1, CachePath1).ConfigureAwait(false);
+            SteamApps steamApps;
+            try
+            {
+                steamApps = JsonSerializer.Deserialize<SteamApps>(cacheString);
+            }
+            catch (JsonException)
+            {
+                cacheString = await GetCache(true, SteamUri1, CachePath1).ConfigureAwait(false);
+                steamApps = JsonSerializer.Deserialize<SteamApps>(cacheString);
+            }
+            _cache = new HashSet<SteamApp>(steamApps.AppList.Apps);
+            _log.Info("Loaded cache into memory!");
+        }
+
+        private async Task<string> GetCache(bool updateNeeded, string steamUri, string cachePath)
+        {
+            var secrets = new Secrets();
             string cacheString;
             if (updateNeeded)
             {
                 _log.Info("Getting content from API...");
                 var client = new HttpClient();
-                var httpCall = client.GetAsync(SteamUri);
+                var httpCall = client.GetAsync(steamUri + secrets.SteamWebApiKey());
                 var response = await httpCall.ConfigureAwait(false);
                 var readAsStringAsync = response.Content.ReadAsStringAsync();
                 var responseBody = await readAsStringAsync.ConfigureAwait(false);
                 _log.Info("Got content from API successfully. Writing to file...");
 
-                await File.WriteAllTextAsync(CachePath, responseBody, Encoding.UTF8).ConfigureAwait(false);
+                await File.WriteAllTextAsync(cachePath, responseBody, Encoding.UTF8).ConfigureAwait(false);
                 cacheString = responseBody;
                 _log.Info("Cache written to file successfully.");
             }
             else
             {
                 _log.Info("Cache already up to date!");
-                cacheString = await File.ReadAllTextAsync(CachePath).ConfigureAwait(false);
+                cacheString = await File.ReadAllTextAsync(cachePath).ConfigureAwait(false);
             }
 
-            var steamApps = JsonSerializer.Deserialize<SteamApps>(cacheString);
-            _cache = new HashSet<SteamApp>(steamApps.AppList.Apps);
-            _log.Info("Loaded cache into memory!");
+            return cacheString;
         }
 
         public IEnumerable<SteamApp> GetListOfAppsByName(string name)

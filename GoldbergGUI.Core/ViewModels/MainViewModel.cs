@@ -1,17 +1,18 @@
-﻿﻿using System.Collections.Generic;
- using System.Collections.ObjectModel;
- using System.IO;
- using System.Linq;
- using System.Threading.Tasks;
- using GoldbergGUI.Core.Models;
- using GoldbergGUI.Core.Services;
- using Microsoft.Win32;
- using MvvmCross.Commands;
- using MvvmCross.Logging;
- using MvvmCross.Navigation;
- using MvvmCross.ViewModels;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using GoldbergGUI.Core.Models;
+using GoldbergGUI.Core.Services;
+using Microsoft.Win32;
+using MvvmCross.Commands;
+using MvvmCross.Logging;
+using MvvmCross.Navigation;
+using MvvmCross.ViewModels;
 
- namespace GoldbergGUI.Core.ViewModels
+namespace GoldbergGUI.Core.ViewModels
 {
     // ReSharper disable once ClassNeverInstantiated.Global
     public class MainViewModel : MvxViewModel
@@ -35,8 +36,10 @@
         private readonly IMvxLog _log;
         private bool _mainWindowEnabled;
         private bool _goldbergApplied;
+        private ObservableCollection<string> _steamLanguages;
+        private string _selectedLanguage;
 
-        public MainViewModel(ISteamService steam, IGoldbergService goldberg, IMvxLogProvider logProvider, 
+        public MainViewModel(ISteamService steam, IGoldbergService goldberg, IMvxLogProvider logProvider,
             IMvxNavigationService navigationService)
         {
             _steam = steam;
@@ -50,24 +53,37 @@
             base.Prepare();
             Task.Run(async () =>
             {
+                //var errorDuringInit = false;
                 MainWindowEnabled = false;
-                ResetForm();
-                await _steam.Initialize(_log).ConfigureAwait(false);
-                var (accountName, userSteamId) = await _goldberg.Initialize(_log).ConfigureAwait(false);
-                AccountName = accountName;
-                SteamId = userSteamId;
+                try
+                {
+                    SteamLanguages = new ObservableCollection<string>(_goldberg.Languages());
+                    ResetForm();
+                    await _steam.Initialize(_log).ConfigureAwait(false);
+                    var (accountName, userSteamId, language) =
+                        await _goldberg.Initialize(_log).ConfigureAwait(false);
+                    AccountName = accountName;
+                    SteamId = userSteamId;
+                    SelectedLanguage = language;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                    //errorDuringInit = true;
+                }
+
                 MainWindowEnabled = true;
             });
         }
 
         public override async Task Initialize()
         {
-            _log.Info("Init");
             await base.Initialize().ConfigureAwait(false);
         }
 
         // PROPERTIES //
-        
+
         public string DllPath
         {
             get => _dllPath;
@@ -192,7 +208,28 @@
         }
 
         public bool DllSelected => !DllPath.Contains("Path to game's steam_api(64).dll");
-        
+
+        public ObservableCollection<string> SteamLanguages
+        {
+            get => _steamLanguages;
+            set
+            {
+                _steamLanguages = value;
+                RaisePropertyChanged(() => SteamLanguages);
+            }
+        }
+
+        public string SelectedLanguage
+        {
+            get => _selectedLanguage;
+            set
+            {
+                _selectedLanguage = value;
+                RaisePropertyChanged(() => SelectedLanguage);
+                //MyLogger.Log.Debug($"Lang: {value}");
+            }
+        }
+
         // COMMANDS //
 
         public IMvxCommand OpenFileCommand => new MvxAsyncCommand(OpenFile);
@@ -211,8 +248,8 @@
                 _log.Warn("File selection canceled.");
                 return;
             }
+
             DllPath = dialog.FileName;
-            //_goldberg.GenerateInterfacesFile(filePath);
             await ReadConfig().ConfigureAwait(false);
         }
 
@@ -225,6 +262,7 @@
                 _log.Error("No game name entered!");
                 return;
             }
+
             MainWindowEnabled = false;
             var appByName = _steam.GetAppByName(_gameName);
             if (appByName != null)
@@ -253,6 +291,7 @@
                     }
                 }
             }
+
             MainWindowEnabled = true;
         }
 
@@ -265,6 +304,7 @@
                 _log.Error("Invalid Steam App!");
                 return;
             }
+
             var steamApp = await Task.Run(() => _steam.GetAppById(AppId)).ConfigureAwait(false);
             if (steamApp != null) GameName = steamApp.Name;
         }
@@ -278,8 +318,10 @@
                 _log.Error("Invalid Steam App!");
                 return;
             }
+
             MainWindowEnabled = false;
-            var listOfDlc = await _steam.GetListOfDlc(new SteamApp {AppId = AppId, Name = GameName}, true).ConfigureAwait(false);
+            var listOfDlc = await _steam.GetListOfDlc(new SteamApp {AppId = AppId, Name = GameName}, true)
+                .ConfigureAwait(false);
             DLCs = new MvxObservableCollection<SteamApp>(listOfDlc);
             MainWindowEnabled = true;
         }
@@ -288,20 +330,25 @@
 
         private async Task SaveConfig()
         {
+            await _goldberg.SetGlobalSettings(AccountName, SteamId, SelectedLanguage).ConfigureAwait(false);
             if (!DllSelected)
             {
                 _log.Error("No DLL selected!");
                 return;
             }
+
             _log.Info("Saving...");
             if (!GetDllPathDir(out var dirPath)) return;
             MainWindowEnabled = false;
-            await _goldberg.Save(dirPath,
-                AppId,
-                DLCs.ToList(),
-                Offline,
-                DisableNetworking,
-                DisableOverlay).ConfigureAwait(false);
+            await _goldberg.Save(dirPath, new GoldbergConfiguration
+                {
+                    AppId = AppId,
+                    DlcList = DLCs.ToList(),
+                    Offline = Offline,
+                    DisableNetworking = DisableNetworking,
+                    DisableOverlay = DisableOverlay
+                }
+            ).ConfigureAwait(false);
             GoldbergApplied = _goldberg.GoldbergApplied(dirPath);
             MainWindowEnabled = true;
         }
@@ -310,17 +357,19 @@
 
         private async Task ResetConfig()
         {
+            (AccountName, SteamId, SelectedLanguage) = await _goldberg.GetGlobalSettings().ConfigureAwait(false);
             if (!DllSelected)
             {
                 _log.Error("No DLL selected!");
                 return;
             }
+
             _log.Info("Reset form...");
             MainWindowEnabled = false;
             await ReadConfig().ConfigureAwait(false);
             MainWindowEnabled = true;
         }
-        
+
         public IMvxCommand GenerateSteamInterfacesCommand => new MvxAsyncCommand(GenerateSteamInterfaces);
 
         private async Task GenerateSteamInterfaces()
@@ -330,20 +379,22 @@
                 _log.Error("No DLL selected!");
                 return;
             }
+
             _log.Info("Generate steam_interfaces.txt...");
             MainWindowEnabled = false;
             GetDllPathDir(out var dirPath);
             if (File.Exists(Path.Combine(dirPath, "steam_api_o.dll")))
-              await _goldberg.GenerateInterfacesFile(Path.Combine(dirPath, "steam_api_o.dll")).ConfigureAwait(false);
+                await _goldberg.GenerateInterfacesFile(Path.Combine(dirPath, "steam_api_o.dll")).ConfigureAwait(false);
             else if (File.Exists(Path.Combine(dirPath, "steam_api64_o.dll")))
-              await _goldberg.GenerateInterfacesFile(Path.Combine(dirPath, "steam_api64_o.dll")).ConfigureAwait(false);
+                await _goldberg.GenerateInterfacesFile(Path.Combine(dirPath, "steam_api64_o.dll"))
+                    .ConfigureAwait(false);
             else await _goldberg.GenerateInterfacesFile(DllPath).ConfigureAwait(false);
             await RaisePropertyChanged(() => SteamInterfacesTxtExists).ConfigureAwait(false);
             MainWindowEnabled = true;
         }
-        
+
         // OTHER METHODS //
-        
+
         private void ResetForm()
         {
             DllPath = "Path to game's steam_api(64).dll...";
@@ -361,13 +412,20 @@
         {
             if (!GetDllPathDir(out var dirPath)) return;
             MainWindowEnabled = false;
-            List<SteamApp> dlcList;
-            (AppId, dlcList, Offline, DisableNetworking, DisableOverlay) = 
-                await _goldberg.Read(dirPath).ConfigureAwait(false);
-            DLCs = new ObservableCollection<SteamApp>(dlcList);
+            var config = await _goldberg.Read(dirPath).ConfigureAwait(false);
+            SetFormFromConfig(config);
             GoldbergApplied = _goldberg.GoldbergApplied(dirPath);
             await RaisePropertyChanged(() => SteamInterfacesTxtExists).ConfigureAwait(false);
             MainWindowEnabled = true;
+        }
+
+        private void SetFormFromConfig(GoldbergConfiguration config)
+        {
+            AppId = config.AppId;
+            DLCs = new ObservableCollection<SteamApp>(config.DlcList);
+            Offline = config.Offline;
+            DisableNetworking = config.DisableNetworking;
+            DisableOverlay = config.DisableOverlay;
         }
 
         private bool GetDllPathDir(out string dirPath)
@@ -381,7 +439,7 @@
 
             dirPath = Path.GetDirectoryName(DllPath);
             if (dirPath != null) return true;
-            
+
             _log.Error($"Invalid directory for {DllPath}.");
             return false;
         }

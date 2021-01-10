@@ -80,12 +80,16 @@
                         <Grid.RowDefinitions>
                             <RowDefinition/>
                             <RowDefinition/>
+                            <RowDefinition/>
                         </Grid.RowDefinitions>
                         <Label Content="Account name" HorizontalAlignment="Left" Margin="0,0,10,0" />
                         <TextBox Text="{Binding AccountName, Mode=TwoWay}" Height="20" Grid.Row="0" Grid.Column="1"/>
                         <Label Content="Steam64ID" HorizontalAlignment="Left" Grid.Row="1"
                                Grid.Column="0" Margin="0,0,10,0" />
                         <TextBox Text="{Binding SteamId, Mode=TwoWay}" Grid.Column="1" Height="20" Grid.Row="1"/>
+                        <Label Content="Language" HorizontalAlignment="Left" Grid.Row="2"
+                               Grid.Column="0" Margin="0,0,10,0" />
+                        <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding SteamLanguages}" SelectedItem="{Binding SelectedLanguage}"></ComboBox>
                     </Grid>
                 </StackPanel>
             </TabItem>
