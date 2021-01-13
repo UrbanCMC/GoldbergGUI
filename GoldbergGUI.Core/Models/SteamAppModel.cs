@@ -28,34 +28,58 @@ namespace GoldbergGUI.Core.Models
             }
         }
 
-        public bool CompareName(string value)
-        {
-            return _comparableName.Equals(value);
-        }
+        public bool CompareName(string value) => _comparableName.Equals(value);
+
+        public AppType type { get; set; }
 
         public override string ToString()
         {
             return $"{AppId}={Name}";
         }
+
+        [JsonPropertyName("last_modified")] public long LastModified { get; set; }
+
+        [JsonPropertyName("price_change_number")]
+        public long PriceChangeNumber { get; set; }
     }
 
     public class AppList
     {
         [JsonPropertyName("apps")] public List<SteamApp> Apps { get; set; }
+
+        [JsonPropertyName("have_more_results")]
+        public bool HaveMoreResults { get; set; }
+
+        [JsonPropertyName("last_appid")] public long LastAppid { get; set; }
     }
 
     public class SteamApps
     {
-        [JsonPropertyName("applist")] public AppList AppList { get; set; }
+        public virtual AppList AppList { get; set; }
     }
-    public static class AppType
+
+    public class SteamAppsV2 : SteamApps
     {
-        public const string Game = "game";
-        public const string DLC = "dlc";
-        public const string Music = "music";
-        public const string Demo = "demo";
-        public const string Ad = "advertising";
-        public const string Mod = "mod";
-        public const string Video = "video";
+        [JsonPropertyName("applist")] public override AppList AppList { get; set; }
+    }
+
+    public class SteamAppsV1 : SteamApps
+    {
+        [JsonPropertyName("response")] public override AppList AppList { get; set; }
+    }
+
+    public class AppType
+    {
+        private AppType(string value) => Value = value;
+
+        public string Value { get; }
+
+        public static AppType Game => new AppType("game");
+        public static AppType DLC => new AppType("dlc");
+        public static AppType Music => new AppType("music");
+        public static AppType Demo => new AppType("demo");
+        public static AppType Ad => new AppType("advertising");
+        public static AppType Mod => new AppType("mod");
+        public static AppType Video => new AppType("video");
     }
 }

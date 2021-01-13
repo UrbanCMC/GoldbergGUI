@@ -32,26 +32,29 @@ namespace GoldbergGUI.Core.Services
     public class SteamService : ISteamService
     {
         // ReSharper disable StringLiteralTypo
-        private readonly List<(string filename, string uri, string type)> _caches = new List<(string, string, string)>
-        {
-            (
-                "steamapps.json",
-                "https://api.steampowered.com/ISteamApps/GetAppList/v2/",
-                null
-            ),
-            (
-                "steamapps_games.json",
-                "https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=1&key=" +
-                Secrets.SteamWebApiKey(),
-                AppType.Game
-            ),
-            (
-                "steamapps_dlc.json",
-                "https://api.steampowered.com/IStoreService/GetAppList/v1/?include_games=0&include_dlc=1&key=" +
-                Secrets.SteamWebApiKey(),
-                AppType.DLC
-            )
-        };
+        private readonly List<(string filename, string uri, Type jsonType, AppType type)> _cacheSetup =
+            new List<(string, string, Type, AppType)>
+            {
+                (
+                    "steamapps_games.json",
+                    "https://api.steampowered.com/IStoreService/GetAppList/v1/" +
+                    "?max_results=50000" +
+                    "&include_games=1" +
+                    "&key=" + Secrets.SteamWebApiKey(),
+                    typeof(SteamAppsV1),
+                    AppType.Game
+                ),
+                (
+                    "steamapps_dlc.json",
+                    "https://api.steampowered.com/IStoreService/GetAppList/v1/" +
+                    "?max_results=50000" +
+                    "&include_games=0" +
+                    "&include_dlc=1" +
+                    "&key=" + Secrets.SteamWebApiKey(),
+                    typeof(SteamAppsV1),
+                    AppType.DLC
+                )
+            };
         // ReSharper enable StringLiteralTypo
 
         private static readonly Secrets Secrets = new Secrets();
@@ -60,30 +63,69 @@ namespace GoldbergGUI.Core.Services
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
             "Chrome/87.0.4280.88 Safari/537.36";
 
-        private HashSet<SteamApp> _cache = new HashSet<SteamApp>();
+        //private HashSet<SteamApp> _cacheAll = new HashSet<SteamApp>();
+        //private HashSet<SteamApp> _cacheGame = new HashSet<SteamApp>();
+        //private HashSet<SteamApp> _cacheDlc = new HashSet<SteamApp>();
+        private Dictionary<string, HashSet<SteamApp>> _caches = new Dictionary<string, HashSet<SteamApp>>();
         private IMvxLog _log;
 
         public async Task Initialize(IMvxLog log)
         {
-            var path = _caches.First().filename;
-            var uri = _caches.First().uri;
-            _log = log;
-            _log.Info("Updating cache...");
-            var updateNeeded = DateTime.Now.Subtract(File.GetLastWriteTimeUtc(path)).TotalDays >= 1;
-            var cacheString = await GetCache(updateNeeded, uri, path).ConfigureAwait(false);
-            SteamApps steamApps;
-            try
+            //var (path, uri, jsonType, appType) = _caches[0];
+            static SteamApps SteamApps(Type type, string s)
             {
-                steamApps = JsonSerializer.Deserialize<SteamApps>(cacheString);
-            }
-            catch (JsonException)
-            {
-                cacheString = await GetCache(true, uri, path).ConfigureAwait(false);
-                steamApps = JsonSerializer.Deserialize<SteamApps>(cacheString);
+                SteamApps steamApps1 = null;
+                if (type == typeof(SteamAppsV1))
+                    steamApps1 = JsonSerializer.Deserialize<SteamAppsV1>(s);
+                else if (type == typeof(SteamAppsV2))
+                    steamApps1 = JsonSerializer.Deserialize<SteamAppsV2>(s);
+                return steamApps1;
             }
 
-            _cache = new HashSet<SteamApp>(steamApps.AppList.Apps);
-            _log.Info("Loaded cache into memory!");
+            foreach (var (path, uri, jsonType, appType) in _cacheSetup)
+            {
+                _log = log;
+                _log.Info("Updating cache...");
+                var updateNeeded = DateTime.Now.Subtract(File.GetLastWriteTimeUtc(path)).TotalDays >= 1;
+                var cacheString = await GetCache(updateNeeded, uri, path).ConfigureAwait(false);
+                SteamApps steamApps = null;
+                try
+                {
+                    steamApps = SteamApps(jsonType, cacheString);
+                }
+                catch (JsonException)
+                {
+                    _log.Error("Local cache broken, forcing update...");
+                    cacheString = await GetCache(true, uri, path).ConfigureAwait(false);
+                    steamApps = SteamApps(jsonType, cacheString);
+                }
+
+                try
+                {
+                    var cache = new HashSet<SteamApp>(steamApps.AppList.Apps);
+
+                    if (appType != null)
+                    {
+                        var cacheEdited = new HashSet<SteamApp>();
+                        foreach (var steamApp in cache)
+                        {
+                            steamApp.type = appType;
+                            cacheEdited.Add(steamApp);
+                        }
+
+                        cache = cacheEdited;
+                    }
+                    
+                    _caches.Add(path, cache);
+
+                    _log.Info("Loaded cache into memory!");
+                }
+                catch (NullReferenceException e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+            }
         }
 
         private async Task<string> GetCache(bool updateNeeded, string steamUri, string cachePath)
@@ -113,32 +155,17 @@ namespace GoldbergGUI.Core.Services
 
         public IEnumerable<SteamApp> GetListOfAppsByName(string name)
         {
-            var listOfAppsByName = _cache.Search(x => x.Name)
+            var listOfAppsByName = _caches["steamapps_games.json"].Search(x => x.Name)
                 .SetCulture(StringComparison.OrdinalIgnoreCase)
                 .ContainingAll(name.Split(' '));
             return listOfAppsByName;
-            /*var filteredList = new HashSet<SteamApp>();
-            foreach (var steamApp in listOfAppsByName)
-            {
-                try
-                {
-                    var task = AppDetails.GetAsync(steamApp.AppId);
-                    var details = await task.ConfigureAwait(false);
-                    if (details?.Type != null && details.Type == AppType.Game) filteredList.Add(steamApp);
-                }
-                catch (Exception e)
-                {
-                    _log.Debug($"{e.GetType()}: {steamApp}");
-                }
-            }
-            return filteredList;*/
         }
 
         public SteamApp GetAppByName(string name)
         {
             _log.Info($"Trying to get app {name}");
             var comparableName = Regex.Replace(name, Misc.SpecialCharsRegex, "").ToLower();
-            var app = _cache.FirstOrDefault(x => x.CompareName(comparableName));
+            var app = _caches["steamapps_games.json"].FirstOrDefault(x => x.CompareName(comparableName));
             if (app != null) _log.Info($"Successfully got app {app}");
             return app;
         }
@@ -146,7 +173,7 @@ namespace GoldbergGUI.Core.Services
         public SteamApp GetAppById(int appid)
         {
             _log.Info($"Trying to get app with ID {appid}");
-            var app = _cache.FirstOrDefault(x => x.AppId.Equals(appid));
+            var app = _caches["steamapps_games.json"].FirstOrDefault(x => x.AppId.Equals(appid));
             if (app != null) _log.Info($"Successfully got app {app}");
             return app;
         }
@@ -159,11 +186,11 @@ namespace GoldbergGUI.Core.Services
             {
                 var task = AppDetails.GetAsync(steamApp.AppId);
                 var steamAppDetails = await task.ConfigureAwait(true);
-                if (steamAppDetails.Type == AppType.Game)
+                if (steamAppDetails.Type == AppType.Game.Value)
                 {
                     steamAppDetails.DLC.ForEach(x =>
                     {
-                        var result = _cache.FirstOrDefault(y => y.AppId.Equals(x)) ??
+                        var result = _caches["steamapps_dlc.json"].FirstOrDefault(y => y.AppId.Equals(x)) ??
                                      new SteamApp {AppId = x, Name = $"Unknown DLC {x}"};
                         dlcList.Add(result);
                     });
