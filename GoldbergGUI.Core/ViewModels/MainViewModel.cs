@@ -64,6 +64,7 @@ namespace GoldbergGUI.Core.ViewModels
             {
                 //var errorDuringInit = false;
                 MainWindowEnabled = false;
+                StatusText = "Initializing! Please wait...";
                 try
                 {
                     SteamLanguages = new ObservableCollection<string>(_goldberg.Languages());
@@ -78,11 +79,12 @@ namespace GoldbergGUI.Core.ViewModels
                 catch (Exception e)
                 {
                     Console.WriteLine(e);
+                    _log.Error(e.Message);
                     throw;
-                    //errorDuringInit = true;
                 }
 
                 MainWindowEnabled = true;
+                StatusText = "Ready.";
             });
         }
 
@@ -100,6 +102,8 @@ namespace GoldbergGUI.Core.ViewModels
             {
                 _dllPath = value;
                 RaisePropertyChanged(() => DllPath);
+                RaisePropertyChanged(() => DllSelected);
+                RaisePropertyChanged(() => SteamInterfacesTxtExists);
             }
         }
 
@@ -132,8 +136,8 @@ namespace GoldbergGUI.Core.ViewModels
             {
                 _dlcs = value;
                 RaisePropertyChanged(() => DLCs);
-                RaisePropertyChanged(() => DllSelected);
-                RaisePropertyChanged(() => SteamInterfacesTxtExists);
+                /*RaisePropertyChanged(() => DllSelected);
+                RaisePropertyChanged(() => SteamInterfacesTxtExists);*/
             }
         }
 
@@ -258,6 +262,8 @@ namespace GoldbergGUI.Core.ViewModels
 
         private async Task OpenFile()
         {
+            MainWindowEnabled = false;
+            StatusText = "Please choose a file...";
             var dialog = new OpenFileDialog
             {
                 Filter = "SteamAPI DLL|steam_api.dll;steam_api64.dll|" +
@@ -267,12 +273,16 @@ namespace GoldbergGUI.Core.ViewModels
             };
             if (dialog.ShowDialog() != true)
             {
+                MainWindowEnabled = true;
                 _log.Warn("File selection canceled.");
+                StatusText = "No file selected! Ready.";
                 return;
             }
 
             DllPath = dialog.FileName;
             await ReadConfig().ConfigureAwait(false);
+            MainWindowEnabled = true;
+            StatusText = "Ready.";
         }
 
         public IMvxCommand FindIdCommand => new MvxAsyncCommand(FindId);
@@ -298,6 +308,7 @@ namespace GoldbergGUI.Core.ViewModels
             }
 
             MainWindowEnabled = false;
+            StatusText = "Trying to find AppID...";
             var appByName = _steam.GetAppByName(_gameName);
             if (appByName != null)
             {
@@ -328,6 +339,7 @@ namespace GoldbergGUI.Core.ViewModels
             }
 
             MainWindowEnabled = true;
+            StatusText = "Ready.";
         }
 
         //public IMvxCommand GetNameByIdCommand => new MvxAsyncCommand(GetNameById);
@@ -355,10 +367,20 @@ namespace GoldbergGUI.Core.ViewModels
             }
 
             MainWindowEnabled = false;
+            StatusText = "Trying to get list of DLCs...";
             var listOfDlc = await _steam.GetListOfDlc(new SteamApp {AppId = AppId, Name = GameName}, true)
                 .ConfigureAwait(false);
             DLCs = new MvxObservableCollection<SteamApp>(listOfDlc);
             MainWindowEnabled = true;
+            if (DLCs.Count > 0)
+            {
+                var empty = DLCs.Count == 1 ? "" : "s";
+                StatusText = $"Successfully got {DLCs.Count} DLC{empty}! Ready.";
+            }
+            else
+            {
+                StatusText = "No DLC found! Ready.";
+            }
         }
 
         public IMvxCommand SaveConfigCommand => new MvxAsyncCommand(SaveConfig);
@@ -376,6 +398,7 @@ namespace GoldbergGUI.Core.ViewModels
             _log.Info("Saving Goldberg settings...");
             if (!GetDllPathDir(out var dirPath)) return;
             MainWindowEnabled = false;
+            StatusText = "Saving...";
             await _goldberg.Save(dirPath, new GoldbergConfiguration
                 {
                     AppId = AppId,
@@ -387,6 +410,7 @@ namespace GoldbergGUI.Core.ViewModels
             ).ConfigureAwait(false);
             GoldbergApplied = _goldberg.GoldbergApplied(dirPath);
             MainWindowEnabled = true;
+            StatusText = "Ready.";
         }
 
         public IMvxCommand ResetConfigCommand => new MvxAsyncCommand(ResetConfig);
@@ -402,8 +426,10 @@ namespace GoldbergGUI.Core.ViewModels
 
             _log.Info("Reset form...");
             MainWindowEnabled = false;
+            StatusText = "Resetting...";
             await ReadConfig().ConfigureAwait(false);
             MainWindowEnabled = true;
+            StatusText = "Ready.";
         }
 
         public IMvxCommand GenerateSteamInterfacesCommand => new MvxAsyncCommand(GenerateSteamInterfaces);
@@ -418,6 +444,7 @@ namespace GoldbergGUI.Core.ViewModels
 
             _log.Info("Generate steam_interfaces.txt...");
             MainWindowEnabled = false;
+            StatusText = @"Generating ""steam_interfaces.txt"".";
             GetDllPathDir(out var dirPath);
             if (File.Exists(Path.Combine(dirPath, "steam_api_o.dll")))
                 await _goldberg.GenerateInterfacesFile(Path.Combine(dirPath, "steam_api_o.dll")).ConfigureAwait(false);
@@ -427,6 +454,7 @@ namespace GoldbergGUI.Core.ViewModels
             else await _goldberg.GenerateInterfacesFile(DllPath).ConfigureAwait(false);
             await RaisePropertyChanged(() => SteamInterfacesTxtExists).ConfigureAwait(false);
             MainWindowEnabled = true;
+            StatusText = "Ready.";
         }
 
         public IMvxCommand PasteDlcCommand => new MvxCommand(() =>
@@ -439,7 +467,7 @@ namespace GoldbergGUI.Core.ViewModels
             }
             else
             {
-                DLCs.Clear();
+                var pastedDlc = new List<SteamApp>();
                 var result = Clipboard.GetText();
                 var expression = new Regex(@"(?<id>.*) *= *(?<name>.*)");
                 foreach (var line in result.Split(new[]
@@ -450,11 +478,22 @@ namespace GoldbergGUI.Core.ViewModels
                 {
                     var match = expression.Match(line);
                     if (match.Success)
-                        DLCs.Add(new SteamApp
+                        pastedDlc.Add(new SteamApp
                         {
                             AppId = Convert.ToInt32(match.Groups["id"].Value),
                             Name = match.Groups["name"].Value
                         });
+                }
+                if (pastedDlc.Count > 0)
+                {
+                    DLCs.Clear();
+                    DLCs = new ObservableCollection<SteamApp>(pastedDlc);
+                    var empty = DLCs.Count == 1 ? "" : "s";
+                    StatusText = $"Successfully got {DLCs.Count} DLC{empty} from clipboard! Ready.";
+                }
+                else
+                {
+                    StatusText = "No DLC found in clipboard! Ready.";
                 }
             }
         });
@@ -477,12 +516,10 @@ namespace GoldbergGUI.Core.ViewModels
         private async Task ReadConfig()
         {
             if (!GetDllPathDir(out var dirPath)) return;
-            MainWindowEnabled = false;
             var config = await _goldberg.Read(dirPath).ConfigureAwait(false);
             SetFormFromConfig(config);
             GoldbergApplied = _goldberg.GoldbergApplied(dirPath);
             await RaisePropertyChanged(() => SteamInterfacesTxtExists).ConfigureAwait(false);
-            MainWindowEnabled = true;
         }
 
         private void SetFormFromConfig(GoldbergConfiguration config)
