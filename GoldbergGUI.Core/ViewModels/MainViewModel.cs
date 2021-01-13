@@ -121,7 +121,7 @@ namespace GoldbergGUI.Core.ViewModels
         public ObservableCollection<SteamApp> DLCs
         {
             get => _dlcs;
-            private set
+            set
             {
                 _dlcs = value;
                 RaisePropertyChanged(() => DLCs);

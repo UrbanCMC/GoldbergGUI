@@ -34,7 +34,12 @@
                                 <RowDefinition/>
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
-                            <DataGrid Margin="0,0,0,5" ItemsSource="{Binding DLCs, Mode=OneWay}" IsReadOnly="True" SelectionMode="Single" SelectionUnit="FullRow" HeadersVisibility="Column"/>
+                            <DataGrid Margin="0,0,0,5" ItemsSource="{Binding DLCs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" SelectionMode="Extended" SelectionUnit="FullRow" HeadersVisibility="Column" AutoGenerateColumns="False" CanUserResizeColumns="False">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="App ID" Binding="{Binding AppId}" Width="80" />
+                                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
+                                </DataGrid.Columns>
+                            </DataGrid>
                             <Button Content="Get list of DLCs..." Command="{Binding GetListOfDlcCommand}" Grid.Row="1" Width="120" HorizontalAlignment="Right" Margin="0,5,125,0" Height="20"/>
                             <Button Content="Advanced Settings..." Grid.Row="1" Width="120" HorizontalAlignment="Right" Margin="0,5,0,0" Height="20" IsEnabled="False" ToolTip="Work in progress..."/>
                         </Grid>
