@@ -5,7 +5,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows;
 using GoldbergGUI.Core.Models;
 using GoldbergGUI.Core.Services;
 using Microsoft.Win32;
@@ -234,7 +237,7 @@ namespace GoldbergGUI.Core.ViewModels
             }
         }
 
-        public string AboutVersionText => 
+        public string AboutVersionText =>
             FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
 
         // COMMANDS //
@@ -413,10 +416,35 @@ namespace GoldbergGUI.Core.ViewModels
             await RaisePropertyChanged(() => SteamInterfacesTxtExists).ConfigureAwait(false);
             MainWindowEnabled = true;
         }
-        
+
         public IMvxCommand PasteDlcCommand => new MvxCommand(() =>
         {
-            _log.Debug("Received CTRL+V");
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+            _log.Info("Trying to paste DLC list...");
+            if (!(Clipboard.ContainsText(TextDataFormat.UnicodeText) || Clipboard.ContainsText(TextDataFormat.Text)))
+            {
+                _log.Warn("Invalid DLC list!");
+            }
+            else
+            {
+                DLCs.Clear();
+                var result = Clipboard.GetText();
+                var expression = new Regex(@"(?<id>.*) *= *(?<name>.*)");
+                foreach (var line in result.Split(new[]
+                {
+                    "\n",
+                    "\r\n"
+                }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var match = expression.Match(line);
+                    if (match.Success)
+                        DLCs.Add(new SteamApp
+                        {
+                            AppId = Convert.ToInt32(match.Groups["id"].Value),
+                            Name = match.Groups["name"].Value
+                        });
+                }
+            }
         });
 
         // OTHER METHODS //
