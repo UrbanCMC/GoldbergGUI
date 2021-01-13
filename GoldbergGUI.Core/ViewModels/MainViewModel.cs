@@ -36,6 +36,8 @@ namespace GoldbergGUI.Core.ViewModels
         private bool _disableNetworking;
         private bool _disableOverlay;
 
+        private string _statusText;
+
         private readonly ISteamService _steam;
         private readonly IGoldbergService _goldberg;
         private readonly IMvxLog _log;
@@ -240,6 +242,16 @@ namespace GoldbergGUI.Core.ViewModels
         public string AboutVersionText =>
             FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
 
+        public string StatusText
+        {
+            get => _statusText;
+            set
+            {
+                _statusText = value;
+                RaisePropertyChanged(() => StatusText);
+            }
+        }
+
         // COMMANDS //
 
         public IMvxCommand OpenFileCommand => new MvxAsyncCommand(OpenFile);
@@ -267,6 +279,18 @@ namespace GoldbergGUI.Core.ViewModels
 
         private async Task FindId()
         {
+            async Task FindIdInList(SteamApp[] steamApps)
+            {
+                var navigateTask = _navigationService
+                    .Navigate<SearchResultViewModel, IEnumerable<SteamApp>, SteamApp>(steamApps);
+                var navigateResult = await navigateTask.ConfigureAwait(false);
+                if (navigateResult != null)
+                {
+                    GameName = navigateResult.Name;
+                    AppId = navigateResult.AppId;
+                }
+            }
+
             if (GameName.Contains("Game name..."))
             {
                 _log.Error("No game name entered!");
@@ -282,7 +306,6 @@ namespace GoldbergGUI.Core.ViewModels
             }
             else
             {
-                var startSearch = false;
                 var list = _steam.GetListOfAppsByName(GameName);
                 var steamApps = list as SteamApp[] ?? list.ToArray();
                 if (steamApps.Length == 1)
@@ -295,24 +318,12 @@ namespace GoldbergGUI.Core.ViewModels
                     }
                     else
                     {
-                        startSearch = true;
+                        await FindIdInList(steamApps).ConfigureAwait(false);
                     }
                 }
                 else
                 {
-                    startSearch = true;
-                }
-
-                if (startSearch)
-                {
-                    var navigateTask = _navigationService
-                        .Navigate<SearchResultViewModel, IEnumerable<SteamApp>, SteamApp>(steamApps);
-                    var navigateResult = await navigateTask.ConfigureAwait(false);
-                    if (navigateResult != null)
-                    {
-                        GameName = navigateResult.Name;
-                        AppId = navigateResult.AppId;
-                    }
+                    await FindIdInList(steamApps).ConfigureAwait(false);
                 }
             }
 
@@ -354,6 +365,7 @@ namespace GoldbergGUI.Core.ViewModels
 
         private async Task SaveConfig()
         {
+            _log.Info("Saving global settings...");
             await _goldberg.SetGlobalSettings(AccountName, SteamId, SelectedLanguage).ConfigureAwait(false);
             if (!DllSelected)
             {
@@ -361,7 +373,7 @@ namespace GoldbergGUI.Core.ViewModels
                 return;
             }
 
-            _log.Info("Saving...");
+            _log.Info("Saving Goldberg settings...");
             if (!GetDllPathDir(out var dirPath)) return;
             MainWindowEnabled = false;
             await _goldberg.Save(dirPath, new GoldbergConfiguration

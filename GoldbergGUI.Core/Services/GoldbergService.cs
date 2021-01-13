@@ -87,6 +87,7 @@ namespace GoldbergGUI.Core.Services
 
         public async Task<(string accountName, long steamId, string language)> GetGlobalSettings()
         {
+            _log.Info("Getting global settings...");
             var accountName = "Account name...";
             long steamId = -1;
             var language = DefaultLanguage;
@@ -104,38 +105,67 @@ namespace GoldbergGUI.Core.Services
 
         public async Task SetGlobalSettings(string accountName, long userSteamId, string language)
         {
+            _log.Info("Setting global settings...");
             if (accountName != null && accountName != "Account name...")
+            {
+                _log.Info("Setting account name...");
                 await File.WriteAllTextAsync(_accountNamePath, accountName).ConfigureAwait(false);
+            }
             else
+            {
+                _log.Info("Invalid account name! Skipping...");
                 await File.WriteAllTextAsync(_accountNamePath, "Goldberg").ConfigureAwait(false);
+            }
+
             if (userSteamId >= 76561197960265729 && userSteamId <= 76561202255233023)
+            {
+                _log.Info("Setting user Steam ID...");
                 await File.WriteAllTextAsync(_userSteamIdPath, userSteamId.ToString()).ConfigureAwait(false);
+            }
             else
+            {
+                _log.Info("Invalid user Steam ID! Skipping...");
                 await Task.Run(() => File.Delete(_userSteamIdPath)).ConfigureAwait(false);
+            }
+
             if (language != null)
+            {
+                _log.Info("Setting language...");
                 await File.WriteAllTextAsync(_languagePath, language).ConfigureAwait(false);
+            }
             else
+            {
+                _log.Info("Invalid language! Skipping...");
                 await File.WriteAllTextAsync(_languagePath, DefaultLanguage).ConfigureAwait(false);
+            }
         }
 
         // If first time, call GenerateInterfaces
         // else try to read config
         public async Task<GoldbergConfiguration> Read(string path)
         {
+            _log.Info("Reading configuration...");
             var appId = -1;
             var dlcList = new List<SteamApp>();
             var steamAppidTxt = Path.Combine(path, "steam_appid.txt");
             if (File.Exists(steamAppidTxt))
             {
+                _log.Info("Getting AppID...");
                 await Task.Run(() => int.TryParse(File.ReadLines(steamAppidTxt).First().Trim(), out appId))
                     .ConfigureAwait(false);
+            }
+            else
+            {
+                _log.Info(@"""steam_appid.txt"" missing! Skipping...");
             }
 
             var dlcTxt = Path.Combine(path, "steam_settings", "DLC.txt");
             if (File.Exists(dlcTxt))
             {
+                _log.Info("Getting DLCs...");
                 var readAllLinesAsync = await File.ReadAllLinesAsync(dlcTxt).ConfigureAwait(false);
                 var expression = new Regex(@"(?<id>.*) *= *(?<name>.*)");
+                // ReSharper disable once LoopCanBeConvertedToQuery
                 foreach (var line in readAllLinesAsync)
                 {
                     var match = expression.Match(line);
@@ -146,6 +176,10 @@ namespace GoldbergGUI.Core.Services
                             Name = match.Groups["name"].Value
                         });
                 }
+            }
+            else
+            {
+                _log.Info(@"""steam_settings/DLC.txt"" missing! Skipping...");
             }
 
             return new GoldbergConfiguration
@@ -164,7 +198,9 @@ namespace GoldbergGUI.Core.Services
         // Save configuration files
         public async Task Save(string path, GoldbergConfiguration c)
         {
+            _log.Info("Saving configuration...");
             // DLL setup
+            _log.Info("Running DLL setup...");
             const string x86Name = "steam_api";
             const string x64Name = "steam_api64";
             if (File.Exists(Path.Combine(path, $"{x86Name}.dll")))
@@ -178,6 +214,7 @@ namespace GoldbergGUI.Core.Services
             }
 
             // Create steam_settings folder if missing
+            _log.Info("Saving settings...");
             if (!Directory.Exists(Path.Combine(path, "steam_settings")))
             {
                 Directory.CreateDirectory(Path.Combine(path, "steam_settings"));
@@ -256,6 +293,7 @@ namespace GoldbergGUI.Core.Services
         {
             var steamSettingsDirExists = Directory.Exists(Path.Combine(path, "steam_settings"));
             var steamAppIdTxtExists = File.Exists(Path.Combine(path, "steam_appid.txt"));
+            _log.Debug($"Goldberg applied? {(steamSettingsDirExists && steamAppIdTxtExists).ToString()}");
             return steamSettingsDirExists && steamAppIdTxtExists;
         }
 
@@ -264,8 +302,7 @@ namespace GoldbergGUI.Core.Services
         // Get latest archive if mismatch, call Extract
         public async Task<bool> Download()
         {
-            var value = false;
-            _log.Debug("Download");
+            _log.Info("Initializing download...");
             if (!Directory.Exists(_goldbergPath)) Directory.CreateDirectory(_goldbergPath);
             var client = new HttpClient();
             var response = await client.GetAsync(GoldbergUrl).ConfigureAwait(false);
@@ -274,25 +311,21 @@ namespace GoldbergGUI.Core.Services
                 @"https:\/\/gitlab\.com\/Mr_Goldberg\/goldberg_emulator\/-\/jobs\/(?<jobid>.*)\/artifacts\/download");
             var jobIdPath = Path.Combine(_goldbergPath, "job_id");
             var match = regex.Match(body);
-            var downloadUrl = match.Value;
             if (File.Exists(jobIdPath))
             {
+                _log.Info("Check if update is needed...");
                 var jobIdLocal = Convert.ToInt32(File.ReadLines(jobIdPath).First().Trim());
                 var jobIdRemote = Convert.ToInt32(match.Groups["jobid"].Value);
                 _log.Debug($"job_id: local {jobIdLocal}; remote {jobIdRemote}");
-                if (!jobIdLocal.Equals(jobIdRemote))
+                if (jobIdLocal.Equals(jobIdRemote))
                 {
-                    await StartDownload(client, downloadUrl).ConfigureAwait(false);
-                    value = true;
+                    _log.Info("Latest Goldberg emulator is already available! Skipping...");
+                    return false;
                 }
             }
-            else
-            {
-                await StartDownload(client, downloadUrl).ConfigureAwait(false);
-                value = true;
-            }
-
-            return value;
+            _log.Info("Starting download...");
+            await StartDownload(client, match.Value).ConfigureAwait(false);
+            return true;
         }
 
         private async Task StartDownload(HttpClient client, string downloadUrl)
@@ -322,7 +355,7 @@ namespace GoldbergGUI.Core.Services
         // Extract all from archive to subfolder ./goldberg/
         public async Task Extract(string archivePath)
         {
-            _log.Debug("Extract");
+            _log.Debug("Start extraction...");
             await Task.Run(() =>
             {
                 Directory.Delete(_goldbergPath, true);
