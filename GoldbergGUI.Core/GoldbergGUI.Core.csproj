@@ -2,11 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <FileVersion>0.1.0</FileVersion>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Folder Include="Models\" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="0.14.0" />

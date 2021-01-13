@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using GoldbergGUI.Core.Models;
 using GoldbergGUI.Core.Services;
@@ -232,6 +234,9 @@ namespace GoldbergGUI.Core.ViewModels
             }
         }
 
+        public string AboutVersionText => 
+            FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
+
         // COMMANDS //
 
         public IMvxCommand OpenFileCommand => new MvxAsyncCommand(OpenFile);
@@ -274,14 +279,28 @@ namespace GoldbergGUI.Core.ViewModels
             }
             else
             {
+                var startSearch = false;
                 var list = _steam.GetListOfAppsByName(GameName);
                 var steamApps = list as SteamApp[] ?? list.ToArray();
                 if (steamApps.Length == 1)
                 {
-                    GameName = steamApps[0].Name;
-                    AppId = steamApps[0].AppId;
+                    var steamApp = steamApps[0];
+                    if (steamApp != null)
+                    {
+                        GameName = steamApp.Name;
+                        AppId = steamApp.AppId;
+                    }
+                    else
+                    {
+                        startSearch = true;
+                    }
                 }
                 else
+                {
+                    startSearch = true;
+                }
+
+                if (startSearch)
                 {
                     var navigateTask = _navigationService
                         .Navigate<SearchResultViewModel, IEnumerable<SteamApp>, SteamApp>(steamApps);
@@ -394,6 +413,11 @@ namespace GoldbergGUI.Core.ViewModels
             await RaisePropertyChanged(() => SteamInterfacesTxtExists).ConfigureAwait(false);
             MainWindowEnabled = true;
         }
+        
+        public IMvxCommand PasteDlcCommand => new MvxCommand(() =>
+        {
+            _log.Debug("Received CTRL+V");
+        });
 
         // OTHER METHODS //
 
