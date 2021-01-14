@@ -11,7 +11,7 @@ namespace GoldbergGUI.WPF
     {
         public App()
         {
-            this.RegisterSetupType<MvxWpfSetup<Core.App>>();
+            this.RegisterSetupType<Setup>();
         }
     }
 }

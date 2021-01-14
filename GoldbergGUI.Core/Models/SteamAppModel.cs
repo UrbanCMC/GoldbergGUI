@@ -74,12 +74,12 @@ namespace GoldbergGUI.Core.Models
 
         public string Value { get; }
 
-        public static AppType Game => new AppType("game");
-        public static AppType DLC => new AppType("dlc");
-        public static AppType Music => new AppType("music");
-        public static AppType Demo => new AppType("demo");
-        public static AppType Ad => new AppType("advertising");
-        public static AppType Mod => new AppType("mod");
-        public static AppType Video => new AppType("video");
+        public static AppType Game { get; } = new AppType("game");
+        public static AppType DLC { get; } = new AppType("dlc");
+        public static AppType Music { get; } = new AppType("music");
+        public static AppType Demo { get; } = new AppType("demo");
+        public static AppType Ad { get; } = new AppType("advertising");
+        public static AppType Mod { get; } = new AppType("mod");
+        public static AppType Video { get; } = new AppType("video");
     }
 }

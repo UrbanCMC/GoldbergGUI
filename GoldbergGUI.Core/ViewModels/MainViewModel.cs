@@ -12,6 +12,7 @@ using System.Windows;
 using GoldbergGUI.Core.Models;
 using GoldbergGUI.Core.Services;
 using Microsoft.Win32;
+using MvvmCross;
 using MvvmCross.Commands;
 using MvvmCross.Logging;
 using MvvmCross.Navigation;
@@ -20,7 +21,7 @@ using MvvmCross.ViewModels;
 namespace GoldbergGUI.Core.ViewModels
 {
     // ReSharper disable once ClassNeverInstantiated.Global
-    public class MainViewModel : MvxViewModel
+    public class MainViewModel : MvxNavigationViewModel
     {
         private readonly IMvxNavigationService _navigationService;
         private string _dllPath;
@@ -48,7 +49,7 @@ namespace GoldbergGUI.Core.ViewModels
         private readonly IMvxLogProvider _logProvider;
 
         public MainViewModel(ISteamService steam, IGoldbergService goldberg, IMvxLogProvider logProvider,
-            IMvxNavigationService navigationService)
+            IMvxNavigationService navigationService) : base(logProvider, navigationService)
         {
             _steam = steam;
             _goldberg = goldberg;

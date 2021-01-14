@@ -34,10 +34,10 @@
                             <RowDefinition/>
                         </Grid.RowDefinitions>
                         <TextBox Text="{Binding DllPath, Mode=OneWay}" TextWrapping="Wrap" Margin="0,0,85,5" VerticalAlignment="Center" Padding="1,0,0,0" Height="20" IsEnabled="False"/>
-                        <Button Content="Select..." Command="{Binding OpenFileCommand}" HorizontalAlignment="Right" Width="80" Height="20" Grid.Row="0" Margin="0,0,0,5"/>
-                        <Button Content="Generate steam_interfaces.txt" IsEnabled="{Binding SteamInterfacesTxtExists, UpdateSourceTrigger=PropertyChanged}" Command="{Binding GenerateSteamInterfacesCommand}" Height="20" Grid.Row="1" Margin="0,5,0,5" />
+                        <Button Content="Select... (_O)" Command="{Binding OpenFileCommand}" HorizontalAlignment="Right" Width="80" Height="20" Grid.Row="0" Margin="0,0,0,5"/>
+                        <Button Content="_Generate steam__interfaces.txt" IsEnabled="{Binding SteamInterfacesTxtExists, UpdateSourceTrigger=PropertyChanged}" Command="{Binding GenerateSteamInterfacesCommand}" Height="20" Grid.Row="1" Margin="0,5,0,5" />
                         <TextBox Text="{Binding GameName, Mode=TwoWay}" TextWrapping="Wrap" VerticalAlignment="Center" Padding="1,0,0,0" Grid.Row="2" Margin="0,5,215,5" Height="20"/>
-                        <Button Content="Find ID..." Command="{Binding FindIdCommand}" Width="80" Grid.Row="2" Margin="0,5,130,5" HorizontalAlignment="Right" Height="20"/>
+                        <Button Content="_Find ID..." Command="{Binding FindIdCommand}" Width="80" Grid.Row="2" Margin="0,5,130,5" HorizontalAlignment="Right" Height="20"/>
                         <TextBox Text="{Binding AppId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="1,0,0,0" Grid.Row="2" Width="125" Margin="0,5,0,5" Height="20"/>
                         <GroupBox Header="DLC" Grid.Row="3" Padding="0,0,0,0" Margin="0,5,0,0">
                             <GroupBox.InputBindings>
@@ -55,8 +55,8 @@
                                         <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
                                     </DataGrid.Columns>
                                 </DataGrid>
-                                <Button Content="Get list of DLCs..." Command="{Binding GetListOfDlcCommand}" Grid.Row="1" Width="120" HorizontalAlignment="Right" Margin="0,5,125,0" Height="20"/>
-                                <Button Content="Advanced Settings..." Grid.Row="1" Width="120" HorizontalAlignment="Right" Margin="0,5,0,0" Height="20" IsEnabled="False" ToolTip="Work in progress..."/>
+                                <Button Content="Get _DLCs for AppID" Command="{Binding GetListOfDlcCommand}" Grid.Row="1" Width="120" HorizontalAlignment="Right" Margin="0,5,125,0" Height="20"/>
+                                <Button Content="_Advanced Settings..." Grid.Row="1" Width="120" HorizontalAlignment="Right" Margin="0,5,0,0" Height="20" IsEnabled="False" ToolTip="Work in progress..."/>
                             </Grid>
                         </GroupBox>
                     </Grid>
@@ -141,8 +141,8 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <CheckBox Content="Goldberg applied" IsChecked="{Binding GoldbergApplied}" IsEnabled="False" Height="20" />
-                <Button Content="Save" Command="{Binding SaveConfigCommand}" Width="80" Grid.Column="1" Height="20" Margin="0,0,5,0"/>
-                <Button Content="Reset" Command="{Binding ResetConfigCommand}" Width="80" Grid.Column="2" Height="20"/>
+                <Button Content="_Save" Command="{Binding SaveConfigCommand}" Width="80" Grid.Column="1" Height="20" Margin="0,0,5,0"/>
+                <Button Content="_Reset" Command="{Binding ResetConfigCommand}" Width="80" Grid.Column="2" Height="20"/>
             </Grid>
         </Grid>
         <!-- Status Bar -->
