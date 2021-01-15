@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using GoldbergGUI.Core.Models;
+using GoldbergGUI.Core.Utils;
 using MvvmCross.Logging;
 
 namespace GoldbergGUI.Core.Services
@@ -17,11 +18,11 @@ namespace GoldbergGUI.Core.Services
     // does file copy stuff
     public interface IGoldbergService
     {
-        public Task<(string accountName, long userSteamId, string language)> Initialize(IMvxLog log);
+        public Task<GoldbergGlobalConfiguration> Initialize(IMvxLog log);
         public Task<GoldbergConfiguration> Read(string path);
         public Task Save(string path, GoldbergConfiguration configuration);
-        public Task<(string accountName, long steamId, string language)> GetGlobalSettings();
-        public Task SetGlobalSettings(string accountName, long userSteamId, string language);
+        public Task<GoldbergGlobalConfiguration> GetGlobalSettings();
+        public Task SetGlobalSettings(GoldbergGlobalConfiguration configuration);
         public bool GoldbergApplied(string path);
         public Task<bool> Download();
         public Task Extract(string archivePath);
@@ -76,7 +77,7 @@ namespace GoldbergGUI.Core.Services
 
         // Call Download
         // Get global settings
-        public async Task<(string accountName, long userSteamId, string language)> Initialize(IMvxLog log)
+        public async Task<GoldbergGlobalConfiguration> Initialize(IMvxLog log)
         {
             _log = log;
 
@@ -85,7 +86,7 @@ namespace GoldbergGUI.Core.Services
             return await GetGlobalSettings().ConfigureAwait(false);
         }
 
-        public async Task<(string accountName, long steamId, string language)> GetGlobalSettings()
+        public async Task<GoldbergGlobalConfiguration> GetGlobalSettings()
         {
             _log.Info("Getting global settings...");
             var accountName = "Account name...";
@@ -100,11 +101,19 @@ namespace GoldbergGUI.Core.Services
                     _log.Error("Invalid User Steam ID!");
                 if (File.Exists(_languagePath)) language = File.ReadLines(_languagePath).First().Trim();
             }).ConfigureAwait(false);
-            return (accountName, steamId, language);
+            return new GoldbergGlobalConfiguration
+            {
+                AccountName = accountName,
+                UserSteamId = steamId,
+                Language = language
+            };
         }
 
-        public async Task SetGlobalSettings(string accountName, long userSteamId, string language)
+        public async Task SetGlobalSettings(GoldbergGlobalConfiguration c)
         {
+            var accountName = c.AccountName;
+            var userSteamId = c.UserSteamId;
+            var language = c.Language;
             _log.Info("Setting global settings...");
             if (accountName != null && accountName != "Account name...")
             {
@@ -324,31 +333,22 @@ namespace GoldbergGUI.Core.Services
                 }
             }
             _log.Info("Starting download...");
-            await StartDownload(client, match.Value).ConfigureAwait(false);
+            await StartDownload(match.Value).ConfigureAwait(false);
             return true;
         }
 
-        private async Task StartDownload(HttpClient client, string downloadUrl)
+        private async Task StartDownload(string downloadUrl)
         {
+            var client = new HttpClient();
             _log.Debug(downloadUrl);
             await using var fileStream = File.OpenWrite(_goldbergZipPath);
             //client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead)
-            var task = GetFileAsync(client, downloadUrl, fileStream).ConfigureAwait(false);
+            var task = client.GetFileAsync(downloadUrl, fileStream).ConfigureAwait(false);
             await task;
             if (task.GetAwaiter().IsCompleted)
             {
                 _log.Info("Download finished!");
             }
-        }
-
-        private static async Task GetFileAsync(HttpClient client, string requestUri, Stream destination,
-            CancellationToken cancelToken = default)
-        {
-            var response = await client.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead, cancelToken)
-                .ConfigureAwait(false);
-            await using var download = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-            await download.CopyToAsync(destination, cancelToken).ConfigureAwait(false);
-            if (destination.CanSeek) destination.Position = 0;
         }
 
         // Empty subfolder ./goldberg/
@@ -361,7 +361,7 @@ namespace GoldbergGUI.Core.Services
                 Directory.Delete(_goldbergPath, true);
                 ZipFile.ExtractToDirectory(archivePath, _goldbergPath);
             }).ConfigureAwait(false);
-            _log.Debug("Extract done!");
+            _log.Debug("Extraction done!");
         }
 
         // https://gitlab.com/Mr_Goldberg/goldberg_emulator/-/blob/master/generate_interfaces_file.cpp

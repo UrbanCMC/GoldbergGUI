@@ -12,7 +12,6 @@ using System.Windows;
 using GoldbergGUI.Core.Models;
 using GoldbergGUI.Core.Services;
 using Microsoft.Win32;
-using MvvmCross;
 using MvvmCross.Commands;
 using MvvmCross.Logging;
 using MvvmCross.Navigation;
@@ -71,11 +70,11 @@ namespace GoldbergGUI.Core.ViewModels
                     SteamLanguages = new ObservableCollection<string>(_goldberg.Languages());
                     ResetForm();
                     await _steam.Initialize(_logProvider.GetLogFor<SteamService>()).ConfigureAwait(false);
-                    var (accountName, userSteamId, language) =
+                    var globalConfiguration =
                         await _goldberg.Initialize(_logProvider.GetLogFor<GoldbergService>()).ConfigureAwait(false);
-                    AccountName = accountName;
-                    SteamId = userSteamId;
-                    SelectedLanguage = language;
+                    AccountName = globalConfiguration.AccountName;
+                    SteamId = globalConfiguration.UserSteamId;
+                    SelectedLanguage = globalConfiguration.Language;
                 }
                 catch (Exception e)
                 {
@@ -221,7 +220,15 @@ namespace GoldbergGUI.Core.ViewModels
             }
         }
 
-        public bool DllSelected => !DllPath.Contains("Path to game's steam_api(64).dll");
+        public bool DllSelected
+        {
+            get
+            {
+                var value = !DllPath.Contains("Path to game's steam_api(64).dll");
+                if (!value) _log.Warn("No DLL selected! Skipping...");
+                return value;
+            }
+        }
 
         public ObservableCollection<string> SteamLanguages
         {
@@ -389,12 +396,14 @@ namespace GoldbergGUI.Core.ViewModels
         private async Task SaveConfig()
         {
             _log.Info("Saving global settings...");
-            await _goldberg.SetGlobalSettings(AccountName, SteamId, SelectedLanguage).ConfigureAwait(false);
-            if (!DllSelected)
+            var globalConfiguration = new GoldbergGlobalConfiguration
             {
-                _log.Error("No DLL selected!");
-                return;
-            }
+                AccountName = AccountName, 
+                UserSteamId = SteamId, 
+                Language = SelectedLanguage
+            };
+            await _goldberg.SetGlobalSettings(globalConfiguration).ConfigureAwait(false);
+            if (!DllSelected) return;
 
             _log.Info("Saving Goldberg settings...");
             if (!GetDllPathDir(out var dirPath)) return;
@@ -418,12 +427,11 @@ namespace GoldbergGUI.Core.ViewModels
 
         private async Task ResetConfig()
         {
-            (AccountName, SteamId, SelectedLanguage) = await _goldberg.GetGlobalSettings().ConfigureAwait(false);
-            if (!DllSelected)
-            {
-                _log.Error("No DLL selected!");
-                return;
-            }
+            var globalConfiguration = await _goldberg.GetGlobalSettings().ConfigureAwait(false);
+            AccountName = globalConfiguration.AccountName;
+            SteamId = globalConfiguration.UserSteamId;
+            SelectedLanguage = globalConfiguration.Language;
+            if (!DllSelected) return;
 
             _log.Info("Reset form...");
             MainWindowEnabled = false;
@@ -437,11 +445,7 @@ namespace GoldbergGUI.Core.ViewModels
 
         private async Task GenerateSteamInterfaces()
         {
-            if (!DllSelected)
-            {
-                _log.Error("No DLL selected!");
-                return;
-            }
+            if (!DllSelected) return;
 
             _log.Info("Generate steam_interfaces.txt...");
             MainWindowEnabled = false;
@@ -536,7 +540,6 @@ namespace GoldbergGUI.Core.ViewModels
         {
             if (!DllSelected)
             {
-                _log.Error("No DLL selected!");
                 dirPath = null;
                 return false;
             }
