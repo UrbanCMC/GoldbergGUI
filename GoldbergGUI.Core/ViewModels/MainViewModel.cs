@@ -309,6 +309,7 @@ namespace GoldbergGUI.Core.ViewModels
 
             DllPath = dialog.FileName;
             await ReadConfig().ConfigureAwait(false);
+            if (!GoldbergApplied) await GetListOfDlc().ConfigureAwait(false);
             MainWindowEnabled = true;
             StatusText = "Ready.";
         }
@@ -365,7 +366,7 @@ namespace GoldbergGUI.Core.ViewModels
                     await FindIdInList(steamApps).ConfigureAwait(false);
                 }
             }
-
+            await GetListOfDlc().ConfigureAwait(false);
             MainWindowEnabled = true;
             StatusText = "Ready.";
         }
