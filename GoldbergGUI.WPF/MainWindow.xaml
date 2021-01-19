@@ -5,6 +5,6 @@
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                  mc:Ignorable="d"
-                 Title="GoldbergGUI" MinHeight="500" MinWidth="600" Background="#FFF0F0F0">
+                 Title="GoldbergGUI" MinHeight="600" MinWidth="800" Background="#FFF0F0F0">
     <Grid />
 </views:MvxWindow>

@@ -96,20 +96,48 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
+                                <RowDefinition/>
+                                <RowDefinition/>
                                 <RowDefinition/>
                                 <RowDefinition/>
                                 <RowDefinition/>
                             </Grid.RowDefinitions>
                             <Label Content="Account name" HorizontalAlignment="Left" Margin="0,0,10,0" />
                             <TextBox Text="{Binding AccountName, Mode=TwoWay}" Height="20" Grid.Row="0" Grid.Column="1"/>
+                            <CheckBox Content="Global" Grid.Row="0" Grid.Column="2" HorizontalAlignment="Right" 
+                                      Margin="10,0,0,0" VerticalAlignment="Center" IsChecked="True" 
+                                      IsEnabled="False"/>
+                                      <!--
+                                      IsEnabled="{Binding DllSelected, UpdateSourceTrigger=PropertyChanged}"/>
+                                      -->
                             <Label Content="Steam64ID" HorizontalAlignment="Left" Grid.Row="1"
                                 Grid.Column="0" Margin="0,0,10,0" />
                             <TextBox Text="{Binding SteamId, Mode=TwoWay}" Grid.Column="1" Height="20" Grid.Row="1"/>
+                            <CheckBox Content="Global" Grid.Row="1" Grid.Column="2" HorizontalAlignment="Right" 
+                                      Margin="10,0,0,0" VerticalAlignment="Center" IsChecked="True" 
+                                      IsEnabled="False"/>
+                                      <!--
+                                      IsEnabled="{Binding DllSelected, UpdateSourceTrigger=PropertyChanged}"/>
+                                      -->
                             <Label Content="Language" HorizontalAlignment="Left" Grid.Row="2"
                                 Grid.Column="0" Margin="0,0,10,0" />
-                            <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding SteamLanguages}" SelectedItem="{Binding SelectedLanguage}"/>
+                            <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding SteamLanguages}" SelectedItem="{Binding SelectedLanguage}" VerticalAlignment="Center"/>
+                            <CheckBox Content="Global" Grid.Row="2" Grid.Column="2" HorizontalAlignment="Right" 
+                                      Margin="10,0,0,0" VerticalAlignment="Center" IsChecked="True" 
+                                      IsEnabled="False"/>
+                                      <!--
+                                      IsEnabled="{Binding DllSelected, UpdateSourceTrigger=PropertyChanged}"/>
+                                      -->
+                            <TextBlock TextWrapping="Wrap" Grid.ColumnSpan="3" Grid.Column="0" Grid.Row="3" Margin="5,10,5,5">
+                                <Run Text="{Binding G.Header, Mode=OneTime}" FontWeight="Bold"/><!--
+                                --><Run Text="{Binding G.TextPreLink, Mode=OneTime}"/>
+                                <Hyperlink Command="{Binding OpenGlobalSettingsFolderCommand}"><Run 
+                                    Text="{Binding G.Link, Mode=OneTime}"/></Hyperlink><!--
+                                --><Run Text="{Binding G.TextPostLink, Mode=OneTime}"/>
+                            </TextBlock>
                         </Grid>
                     </StackPanel>
                 </TabItem>
