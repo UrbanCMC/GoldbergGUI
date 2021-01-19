@@ -24,7 +24,7 @@ namespace GoldbergGUI.Core.Models
             set
             {
                 _name = value;
-                _comparableName = Regex.Replace(value, Misc.SpecialCharsRegex, "").ToLower();
+                _comparableName = Regex.Replace(value, Misc.AlphaNumOnlyRegex, "").ToLower();
             }
         }
 

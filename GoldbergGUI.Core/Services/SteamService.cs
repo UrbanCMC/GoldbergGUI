@@ -177,7 +177,7 @@ namespace GoldbergGUI.Core.Services
         public SteamApp GetAppByName(string name)
         {
             _log.Info($"Trying to get app {name}");
-            var comparableName = Regex.Replace(name, Misc.SpecialCharsRegex, "").ToLower();
+            var comparableName = Regex.Replace(name, Misc.AlphaNumOnlyRegex, "").ToLower();
             var app = _caches[AppType.Game].Cache.FirstOrDefault(x => x.CompareName(comparableName));
             if (app != null) _log.Info($"Successfully got app {app}");
             return app;

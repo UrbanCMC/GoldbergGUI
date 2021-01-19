@@ -1,6 +1,6 @@
 using MvvmCross.Platforms.Wpf.Presenters.Attributes;
-using MvvmCross.Platforms.Wpf.Views;
 
+// ReSharper disable UnusedType.Global
 namespace GoldbergGUI.WPF.Views
 {
     [MvxWindowPresentation(Identifier = nameof(SearchResultView), Modal = false)]
