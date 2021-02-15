@@ -46,6 +46,7 @@ namespace GoldbergGUI.Core.Services
         private readonly string _accountNamePath = Path.Combine(GlobalSettingsPath, "settings/account_name.txt");
         private readonly string _userSteamIdPath = Path.Combine(GlobalSettingsPath, "settings/user_steam_id.txt");
         private readonly string _languagePath = Path.Combine(GlobalSettingsPath, "settings/language.txt");
+        private readonly string _customBroadcastIpsPath = Path.Combine(GlobalSettingsPath, "settings/custom_broadcasts.txt");
 
         private readonly List<string> _interfaceNames = new List<string>
         {
@@ -92,20 +93,27 @@ namespace GoldbergGUI.Core.Services
             var accountName = "Account name...";
             long steamId = -1;
             var language = DefaultLanguage;
+            var customBroadcastIps = new List<string>();
             await Task.Run(() =>
             {
                 if (File.Exists(_accountNamePath)) accountName = File.ReadLines(_accountNamePath).First().Trim();
                 if (File.Exists(_userSteamIdPath) &&
                     !long.TryParse(File.ReadLines(_userSteamIdPath).First().Trim(), out steamId) &&
                     steamId < 76561197960265729 && steamId > 76561202255233023)
+                {
                     _log.Error("Invalid User Steam ID!");
+                }
                 if (File.Exists(_languagePath)) language = File.ReadLines(_languagePath).First().Trim();
+                if (File.Exists(_customBroadcastIpsPath))
+                    customBroadcastIps.AddRange(
+                        File.ReadLines(_customBroadcastIpsPath).Select(line => line.Trim()));
             }).ConfigureAwait(false);
             return new GoldbergGlobalConfiguration
             {
                 AccountName = accountName,
                 UserSteamId = steamId,
-                Language = language
+                Language = language,
+                CustomBroadcastIps = customBroadcastIps
             };
         }
 
@@ -114,7 +122,9 @@ namespace GoldbergGUI.Core.Services
             var accountName = c.AccountName;
             var userSteamId = c.UserSteamId;
             var language = c.Language;
+            var customBroadcastIps = c.CustomBroadcastIps;
             _log.Info("Setting global settings...");
+            // Account Name
             if (accountName != null && accountName != "Account name...")
             {
                 _log.Info("Setting account name...");
@@ -125,7 +135,7 @@ namespace GoldbergGUI.Core.Services
                 _log.Info("Invalid account name! Skipping...");
                 await File.WriteAllTextAsync(_accountNamePath, "Goldberg").ConfigureAwait(false);
             }
-
+            // User SteamID
             if (userSteamId >= 76561197960265729 && userSteamId <= 76561202255233023)
             {
                 _log.Info("Setting user Steam ID...");
@@ -136,7 +146,7 @@ namespace GoldbergGUI.Core.Services
                 _log.Info("Invalid user Steam ID! Skipping...");
                 await Task.Run(() => File.Delete(_userSteamIdPath)).ConfigureAwait(false);
             }
-
+            // Language
             if (language != null)
             {
                 _log.Info("Setting language...");
@@ -146,6 +156,19 @@ namespace GoldbergGUI.Core.Services
             {
                 _log.Info("Invalid language! Skipping...");
                 await File.WriteAllTextAsync(_languagePath, DefaultLanguage).ConfigureAwait(false);
+            }
+            // Custom Broadcast IPs
+            if (customBroadcastIps.Count > 0)
+            {
+                _log.Info("Setting custom broadcast IPs...");
+                var result = 
+                    customBroadcastIps.Aggregate("", (current, address) => $"{current}{address}\n");
+                await File.WriteAllTextAsync(_customBroadcastIpsPath, result).ConfigureAwait(false);
+            }
+            else
+            {
+                _log.Info("Empty list of custom broadcast IPs! Skipping...");
+                await Task.Run(() => File.Delete(_customBroadcastIpsPath)).ConfigureAwait(false);
             }
         }
 

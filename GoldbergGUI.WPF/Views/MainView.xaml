@@ -84,7 +84,7 @@
                             <StackPanel Margin="5,5,5,5">
                                 <CheckBox Content="Offline" IsChecked="{Binding Offline, Mode=TwoWay}" Height="20" VerticalAlignment="Stretch" VerticalContentAlignment="Center"/>
                                 <CheckBox Content="Disable Networking" IsChecked="{Binding DisableNetworking, Mode=TwoWay}" Height="20" VerticalContentAlignment="Center"/>
-                                <CheckBox Content="Disable Overlay" IsChecked="{Binding DisableOverlay, Mode=TwoWay}" Height="20" VerticalContentAlignment="Center"/>
+                                <CheckBox Content="Disable Overlay" IsChecked="{Binding DisableOverlay, Mode=TwoWay}" Height="20" VerticalContentAlignment="Center" IsEnabled="False"/>
                             </StackPanel>
                         </GroupBox>
                     </Grid>
