@@ -6,21 +6,39 @@ namespace GoldbergGUI.Core.Models
 {
     public class GoldbergGlobalConfiguration
     {
+        /// <summary>
+        /// Name of the user
+        /// </summary>
         public string AccountName { get; set; }
+        /// <summary>
+        /// Steam64ID of the user
+        /// </summary>
         public long UserSteamId { get; set; }
+        /// <summary>
+        /// language to be used
+        /// </summary>
         public string Language { get; set; }
+        /// <summary>
+        /// Custom broadcast addresses (IPv4 or domain addresses)
+        /// </summary>
         public List<string> CustomBroadcastIps { get; set; }
     }
     public class GoldbergConfiguration
     {
+        /// <summary>
+        /// App ID of the game
+        /// </summary>
         public int AppId { get; set; }
+        /// <summary>
+        /// List of DLC
+        /// </summary>
         public List<SteamApp> DlcList { get; set; }
         
-        public List<int> Depots { get; set; }
+        public List<Depot> Depots { get; set; }
         
-        public List<int> SubscribedGroups { get; set; }
+        public List<Group> SubscribedGroups { get; set; }
         
-        public Dictionary<int, string> AppPaths { get; set; }
+        public List<AppPath> AppPaths { get; set; }
         
         public List<Achievement> Achievements { get; set; }
         
@@ -31,30 +49,95 @@ namespace GoldbergGUI.Core.Models
         public List<Stat> Stats { get; set; }
         
         // Add controller setting here!
+        /// <summary>
+        /// Set offline mode.
+        /// </summary>
         public bool Offline { get; set; }
+        /// <summary>
+        /// Disable networking (game is set to online, however all outgoing network connectivity will be disabled).
+        /// </summary>
         public bool DisableNetworking { get; set; }
+        /// <summary>
+        /// Disable overlay (experimental only).
+        /// </summary>
         public bool DisableOverlay { get; set; }
         
         public GoldbergGlobalConfiguration OverwrittenGlobalConfiguration { get; set; }
     }
 
+    public class Depot
+    {
+        /// <summary>
+        /// ID of Depot.
+        /// </summary>
+        public int DepotId { get; set; }
+        /// <summary>
+        /// Name of Depot.
+        /// </summary>
+        public string Name { get; set; }
+        /// <summary>
+        /// Associated DLC App ID, can be null (e.g. if Depot is for base game).
+        /// </summary>
+        public int DlcAppId { get; set; }
+    }
+
+    public class Group
+    {
+        /// <summary>
+        /// ID of group (https://steamcommunity.com/gid/103582791433980119/memberslistxml/?xml=1).
+        /// </summary>
+        public int GroupId { get; set; }
+        /// <summary>
+        /// Name of group.
+        /// </summary>
+        public string GroupName { get; set; }
+        /// <summary>
+        /// App ID of game associated with group (https://steamcommunity.com/games/218620/memberslistxml/?xml=1).
+        /// </summary>
+        public int AppId { get; set; }
+    }
+
+    public class AppPath
+    {
+        public int AppId { get; set; }
+        public string Path { get; set; }
+    }
+
     public class Achievement
     {
+        /// <summary>
+        /// Achievement description.
+        /// </summary>
         [JsonPropertyName("description")]
         public string Description { get; set; } 
 
+        /// <summary>
+        /// Human readable name, as shown on webpage, game libary, overlay, etc.
+        /// </summary>
         [JsonPropertyName("displayName")]
         public string DisplayName { get; set; } 
 
+        /// <summary>
+        /// Is achievement hidden? 0 = false, else true.
+        /// </summary>
         [JsonPropertyName("hidden")]
-        public string Hidden { get; set; } 
-
+        public int Hidden { get; set; } 
+        
+        /// <summary>
+        /// Path to icon when unlocked (colored).
+        /// </summary>
         [JsonPropertyName("icon")]
         public string Icon { get; set; } 
 
+        /// <summary>
+        /// Path to icon when locked (grayed out).
+        /// </summary>
         [JsonPropertyName("icongray")]
         public string IconGray { get; set; } 
 
+        /// <summary>
+        /// Internal name.
+        /// </summary>
         [JsonPropertyName("name")]
         public string Name { get; set; } 
     }

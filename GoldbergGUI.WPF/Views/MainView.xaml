@@ -137,10 +137,10 @@
                             <CheckBox Content="Global" Grid.Row="3" Grid.Column="2" HorizontalAlignment="Right" 
                                       Margin="10,0,5,0" VerticalAlignment="Center" IsChecked="True" 
                                       IsEnabled="False"/>
-                            <TextBox Grid.Row="4" Grid.ColumnSpan="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                            <TextBox Grid.Row="4" Grid.ColumnSpan="3" Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                                       TextWrapping="Wrap"
                                       AcceptsReturn="True"
-                                      VerticalScrollBarVisibility="Visible" MaxHeight="120" MinHeight="120"/>
+                                      VerticalScrollBarVisibility="Auto" MaxHeight="120" MinHeight="120"/>
                             <TextBlock TextWrapping="Wrap" Grid.ColumnSpan="3" Grid.Column="0" Grid.Row="5" Margin="5,10,5,5">
                                 <Run Text="{Binding G.Header, Mode=OneTime}" FontWeight="Bold"/><!--
                                 --><Run Text="{Binding G.TextPreLink, Mode=OneTime}"/>

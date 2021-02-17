@@ -17,6 +17,9 @@ namespace GoldbergGUI.Core.Models
         private string _comparableName;
         [JsonPropertyName("appid")] public int AppId { get; set; }
 
+        /// <summary>
+        /// Name of Steam app
+        /// </summary>
         [JsonPropertyName("name")]
         public string Name
         {
@@ -27,9 +30,15 @@ namespace GoldbergGUI.Core.Models
                 _comparableName = Regex.Replace(value, Misc.AlphaNumOnlyRegex, "").ToLower();
             }
         }
-
+        
+        /// <summary>
+        /// Trimmed and cleaned name of Steam app, used for comparisons.
+        /// </summary>
         public bool CompareName(string value) => _comparableName.Equals(value);
 
+        /// <summary>
+        /// App type (Game, DLC, ...)
+        /// </summary>
         public AppType type { get; set; }
 
         public override string ToString()

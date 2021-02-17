@@ -476,29 +476,23 @@ namespace GoldbergGUI.Core.ViewModels
             }
             else
             {
-                var pastedDlc = new List<SteamApp>();
                 var result = Clipboard.GetText();
                 var expression = new Regex(@"(?<id>.*) *= *(?<name>.*)");
-                foreach (var line in result.Split(new[]
-                {
-                    "\n",
-                    "\r\n"
-                }, StringSplitOptions.RemoveEmptyEntries))
-                {
-                    var match = expression.Match(line);
-                    if (match.Success)
-                        pastedDlc.Add(new SteamApp
-                        {
-                            AppId = Convert.ToInt32(match.Groups["id"].Value),
-                            Name = match.Groups["name"].Value
-                        });
-                }
+                var pastedDlc = (from line in result.Split(new[] {"\n", "\r\n"},
+                    StringSplitOptions.RemoveEmptyEntries) select expression.Match(line) into match
+                    where match.Success select new SteamApp
+                    {
+                        AppId = Convert.ToInt32(match.Groups["id"].Value), 
+                        Name = match.Groups["name"].Value
+                    }).ToList();
                 if (pastedDlc.Count > 0)
                 {
                     DLCs.Clear();
                     DLCs = new ObservableCollection<SteamApp>(pastedDlc);
-                    var empty = DLCs.Count == 1 ? "" : "s";
-                    StatusText = $"Successfully got {DLCs.Count} DLC{empty} from clipboard! Ready.";
+                    //var empty = DLCs.Count == 1 ? "" : "s";
+                    //StatusText = $"Successfully got {DLCs.Count} DLC{empty} from clipboard! Ready.";
+                    var statusTextCount = DLCs.Count == 1 ? "one DLC" : $"{DLCs.Count} DLCs";
+                    StatusText = $"Successfully got {statusTextCount} from clipboard! Ready.";
                 }
                 else
                 {
