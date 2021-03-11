@@ -179,18 +179,18 @@ namespace GoldbergGUI.Core.Services
                 var steamAppDetails = await task.ConfigureAwait(true);
                 if (steamAppDetails.Type == AppType.Game.Value)
                 {
+                    var db = new LiteDatabase("steamapps.db");
                     steamAppDetails.DLC.ForEach(x =>
                     {
                         /*var result = _caches[AppType.DLC].Cache.FirstOrDefault(y => y.AppId.Equals(x))
                                      ?? new SteamApp {AppId = x, Name = $"Unknown DLC {x}"};*/
-
-                        using var db = new LiteDatabase("steamapps.db");
                         var steamAppCollection = db.GetCollection<SteamApp>("steamapps");
                         steamAppCollection.EnsureIndex(y => y.AppId);
                         var result = steamAppCollection.FindOne(y => y.AppId.Equals(x))
                                      ?? new SteamApp {AppId = x, Name = $"Unknown DLC {x}"};
                         dlcList.Add(result);
                     });
+                    db.Dispose();
 
                     dlcList.ForEach(x => _log.Debug($"{x.AppId}={x.Name}"));
                     _log.Info("Got DLC successfully...");
