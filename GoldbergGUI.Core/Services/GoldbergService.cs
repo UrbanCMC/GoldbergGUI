@@ -5,7 +5,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using GoldbergGUI.Core.Models;
 using GoldbergGUI.Core.Utils;
@@ -24,8 +23,8 @@ namespace GoldbergGUI.Core.Services
         public Task<GoldbergGlobalConfiguration> GetGlobalSettings();
         public Task SetGlobalSettings(GoldbergGlobalConfiguration configuration);
         public bool GoldbergApplied(string path);
-        public Task<bool> Download();
-        public Task Extract(string archivePath);
+        // public Task<bool> Download();
+        // public Task Extract(string archivePath);
         public Task GenerateInterfacesFile(string filePath);
         public List<string> Languages();
     }
@@ -34,8 +33,10 @@ namespace GoldbergGUI.Core.Services
     public class GoldbergService : IGoldbergService
     {
         private IMvxLog _log;
-        private const string GoldbergUrl = "https://mr_goldberg.gitlab.io/goldberg_emulator/";
+        private const string DefaultAccountName = "Mr_Goldberg";
+        private const long DefaultSteamId = 76561197960287930;
         private const string DefaultLanguage = "english";
+        private const string GoldbergUrl = "https://mr_goldberg.gitlab.io/goldberg_emulator/";
         private readonly string _goldbergZipPath = Path.Combine(Directory.GetCurrentDirectory(), "goldberg.zip");
         private readonly string _goldbergPath = Path.Combine(Directory.GetCurrentDirectory(), "goldberg");
 
@@ -48,6 +49,7 @@ namespace GoldbergGUI.Core.Services
         private readonly string _languagePath = Path.Combine(GlobalSettingsPath, "settings/language.txt");
         private readonly string _customBroadcastIpsPath = Path.Combine(GlobalSettingsPath, "settings/custom_broadcasts.txt");
 
+        // ReSharper disable StringLiteralTypo
         private readonly List<string> _interfaceNames = new List<string>
         {
             "SteamClient",
@@ -90,10 +92,11 @@ namespace GoldbergGUI.Core.Services
         public async Task<GoldbergGlobalConfiguration> GetGlobalSettings()
         {
             _log.Info("Getting global settings...");
-            var accountName = "Account name...";
-            long steamId = -1;
+            var accountName = DefaultAccountName;
+            var steamId = DefaultSteamId;
             var language = DefaultLanguage;
             var customBroadcastIps = new List<string>();
+            if (!File.Exists(GlobalSettingsPath)) Directory.CreateDirectory(Path.Join(GlobalSettingsPath, "settings"));
             await Task.Run(() =>
             {
                 if (File.Exists(_accountNamePath)) accountName = File.ReadLines(_accountNamePath).First().Trim();
@@ -125,44 +128,58 @@ namespace GoldbergGUI.Core.Services
             var customBroadcastIps = c.CustomBroadcastIps;
             _log.Info("Setting global settings...");
             // Account Name
-            if (accountName != null && accountName != "Account name...")
+            if (!string.IsNullOrEmpty(accountName))
             {
                 _log.Info("Setting account name...");
+                if (!File.Exists(_accountNamePath))
+                    await File.Create(_accountNamePath).DisposeAsync().ConfigureAwait(false);
                 await File.WriteAllTextAsync(_accountNamePath, accountName).ConfigureAwait(false);
             }
             else
             {
                 _log.Info("Invalid account name! Skipping...");
-                await File.WriteAllTextAsync(_accountNamePath, "Goldberg").ConfigureAwait(false);
+                if (!File.Exists(_accountNamePath))
+                    await File.Create(_accountNamePath).DisposeAsync().ConfigureAwait(false);
+                await File.WriteAllTextAsync(_accountNamePath, DefaultAccountName).ConfigureAwait(false);
             }
             // User SteamID
             if (userSteamId >= 76561197960265729 && userSteamId <= 76561202255233023)
             {
                 _log.Info("Setting user Steam ID...");
+                if (!File.Exists(_userSteamIdPath)) 
+                    await File.Create(_userSteamIdPath).DisposeAsync().ConfigureAwait(false);
                 await File.WriteAllTextAsync(_userSteamIdPath, userSteamId.ToString()).ConfigureAwait(false);
             }
             else
             {
                 _log.Info("Invalid user Steam ID! Skipping...");
-                await Task.Run(() => File.Delete(_userSteamIdPath)).ConfigureAwait(false);
+                if (!File.Exists(_userSteamIdPath)) 
+                    await File.Create(_userSteamIdPath).DisposeAsync().ConfigureAwait(false);
+                await File.WriteAllTextAsync(_userSteamIdPath, DefaultSteamId.ToString()).ConfigureAwait(false);
             }
             // Language
-            if (language != null)
+            if (!string.IsNullOrEmpty(language))
             {
                 _log.Info("Setting language...");
+                if (!File.Exists(_languagePath))
+                    await File.Create(_languagePath).DisposeAsync().ConfigureAwait(false);
                 await File.WriteAllTextAsync(_languagePath, language).ConfigureAwait(false);
             }
             else
             {
                 _log.Info("Invalid language! Skipping...");
+                if (!File.Exists(_languagePath))
+                    await File.Create(_languagePath).DisposeAsync().ConfigureAwait(false);
                 await File.WriteAllTextAsync(_languagePath, DefaultLanguage).ConfigureAwait(false);
             }
             // Custom Broadcast IPs
-            if (customBroadcastIps.Count > 0)
+            if (customBroadcastIps != null && customBroadcastIps.Count > 0)
             {
                 _log.Info("Setting custom broadcast IPs...");
                 var result = 
                     customBroadcastIps.Aggregate("", (current, address) => $"{current}{address}\n");
+                if (!File.Exists(_customBroadcastIpsPath))
+                    await File.Create(_customBroadcastIpsPath).DisposeAsync().ConfigureAwait(false);
                 await File.WriteAllTextAsync(_customBroadcastIpsPath, result).ConfigureAwait(false);
             }
             else
@@ -329,11 +346,11 @@ namespace GoldbergGUI.Core.Services
             return steamSettingsDirExists && steamAppIdTxtExists;
         }
 
-        // Get webpage
-        // Get job id, compare with local if exists, save it if false or missing
-        // Get latest archive if mismatch, call Extract
-        public async Task<bool> Download()
+        private async Task<bool> Download()
         {
+            // Get webpage
+            // Get job id, compare with local if exists, save it if false or missing
+            // Get latest archive if mismatch, call Extract
             _log.Info("Initializing download...");
             if (!Directory.Exists(_goldbergPath)) Directory.CreateDirectory(_goldbergPath);
             var client = new HttpClient();
@@ -376,7 +393,7 @@ namespace GoldbergGUI.Core.Services
 
         // Empty subfolder ./goldberg/
         // Extract all from archive to subfolder ./goldberg/
-        public async Task Extract(string archivePath)
+        private async Task Extract(string archivePath)
         {
             _log.Debug("Start extraction...");
             await Task.Run(() =>
