@@ -79,7 +79,7 @@ namespace GoldbergGUI.Core.Models
 
     public class AppType
     {
-        public AppType(string value) => Value = value;
+        private AppType(string value) => Value = value;
 
         public string Value { get; }
 
