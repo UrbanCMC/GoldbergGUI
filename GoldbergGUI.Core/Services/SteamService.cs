@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -86,7 +85,7 @@ namespace GoldbergGUI.Core.Services
 
         private IMvxLog _log;
 
-        private SQLiteConnection _db;
+        private SQLiteAsyncConnection _db;
 
         public async Task Initialize(IMvxLog log)
         {
@@ -98,10 +97,14 @@ namespace GoldbergGUI.Core.Services
             }
 
             _log = log;
-            _db = new SQLiteConnection(Database);
-            _db.CreateTable<SteamApp>();
+            _db = new SQLiteAsyncConnection(Database);
+            //_db.CreateTable<SteamApp>();
+            await _db.CreateTableAsync<SteamApp>()
+                //.ContinueWith(x => _log.Debug("Table success!"))
+                .ConfigureAwait(false);
 
-           if (DateTime.Now.Subtract(File.GetLastWriteTimeUtc(Database)).TotalDays >= 1 || !_db.Table<SteamApp>().Any())
+            var countAsync = await _db.Table<SteamApp>().CountAsync().ConfigureAwait(false);
+            if (DateTime.Now.Subtract(File.GetLastWriteTimeUtc(Database)).TotalDays >= 1 || countAsync == 0)
             {
                 foreach (var (appType, steamCache) in _caches)
                 {
@@ -131,15 +134,16 @@ namespace GoldbergGUI.Core.Services
                         cache.Add(steamApp);
                     }
 
-                    _db.InsertAll(cache);
+                    await _db.InsertAllAsync(cache).ConfigureAwait(false);
                 }
             }
         }
 
         public IEnumerable<SteamApp> GetListOfAppsByName(string name)
         {
-            var listOfAppsByName = _db.Table<SteamApp>()
-                .Where(x => x.type == AppTypeGame).Search(x => x.Name)
+            var query = _db.Table<SteamApp>()
+                .Where(x => x.type == AppTypeGame).ToListAsync().Result;
+            var listOfAppsByName = query.Search(x => x.Name)
                 .SetCulture(StringComparison.OrdinalIgnoreCase)
                 .ContainingAll(name.Split(' '));
             return listOfAppsByName;
@@ -150,7 +154,7 @@ namespace GoldbergGUI.Core.Services
             _log.Info($"Trying to get app {name}");
             var comparableName = PrepareStringToCompare(name);
             var app = _db.Table<SteamApp>()
-                .FirstOrDefault(x => x.type == AppTypeGame && x.ComparableName.Equals(comparableName));
+                .FirstOrDefaultAsync(x => x.type == AppTypeGame && x.ComparableName.Equals(comparableName)).Result;
             if (app != null) _log.Info($"Successfully got app {app}");
             return app;
         }
@@ -159,7 +163,7 @@ namespace GoldbergGUI.Core.Services
         {
             _log.Info($"Trying to get app with ID {appid}");
             var app = _db.Table<SteamApp>().Where(x => x.type == AppTypeGame)
-                .FirstOrDefault(x => x.AppId.Equals(appid));
+                .FirstOrDefaultAsync(x => x.AppId.Equals(appid)).Result;
             if (app != null) _log.Info($"Successfully got app {app}");
             return app;
         }
@@ -174,19 +178,19 @@ namespace GoldbergGUI.Core.Services
                 var steamAppDetails = await task.ConfigureAwait(true);
                 if (steamAppDetails.Type == AppTypeGame)
                 {
-                    steamAppDetails.DLC.ForEach(x =>
+                    steamAppDetails.DLC.ForEach(async x =>
                     {
-                        var result = _db.Table<SteamApp>().Where(z => z.type == AppTypeDlc)
-                                         .FirstOrDefault(y => y.AppId.Equals(x))
+                        var result = await _db.Table<SteamApp>().Where(z => z.type == AppTypeDlc)
+                                         .FirstOrDefaultAsync(y => y.AppId.Equals(x)).ConfigureAwait(true)
                                      ?? new SteamApp {AppId = x, Name = $"Unknown DLC {x}"};
                         dlcList.Add(result);
+                        _log.Debug($"{result.AppId}={result.Name}");
                     });
 
-                    dlcList.ForEach(x => _log.Debug($"{x.AppId}={x.Name}"));
                     _log.Info("Got DLC successfully...");
 
                     // Get DLC from SteamDB
-                    // Get Cloudflare cookie
+                    // Get Cloudflare cookie (not implemented)
                     // Scrape and parse HTML page
                     // Add missing to DLC list
 
