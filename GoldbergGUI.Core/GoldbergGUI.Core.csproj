@@ -9,8 +9,6 @@
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" Version="0.14.0" />
-    <PackageReference Include="LiteDB" Version="5.0.10" />
-    <PackageReference Include="LiteDB.Async" Version="0.0.8" />
     <PackageReference Include="MvvmCross" Version="7.1.2" />
     <PackageReference Include="NinjaNye.SearchExtensions" Version="3.0.1" />
     <PackageReference Include="SharpCompress" Version="0.26.0" />
