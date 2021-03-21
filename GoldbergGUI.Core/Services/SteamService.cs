@@ -82,7 +82,7 @@ namespace GoldbergGUI.Core.Services
 
         private const string AppTypeGame = "game";
         private const string AppTypeDlc = "dlc";
-        private const string Database = "steamapps.db";
+        private const string Database = "steamapps.cache";
 
         private IMvxLog _log;
 
@@ -90,7 +90,6 @@ namespace GoldbergGUI.Core.Services
 
         public async Task Initialize(IMvxLog log)
         {
-            //var (path, uri, jsonType, appType) = _caches[0];
             static SteamApps DeserializeSteamApps(Type type, string cacheString)
             {
                 return type == typeof(SteamAppsV2)
@@ -128,7 +127,7 @@ namespace GoldbergGUI.Core.Services
                     foreach (var steamApp in cacheRaw)
                     {
                         steamApp.type = steamCache.SteamAppType;
-                        steamApp.ComparableName = Regex.Replace(steamApp.Name, Misc.AlphaNumOnlyRegex, "").ToLower();
+                        steamApp.ComparableName = PrepareStringToCompare(steamApp.Name);
                         cache.Add(steamApp);
                     }
 
@@ -149,7 +148,7 @@ namespace GoldbergGUI.Core.Services
         public SteamApp GetAppByName(string name)
         {
             _log.Info($"Trying to get app {name}");
-            var comparableName = Regex.Replace(name, Misc.AlphaNumOnlyRegex, "").ToLower();
+            var comparableName = PrepareStringToCompare(name);
             var app = _db.Table<SteamApp>()
                 .FirstOrDefault(x => x.type == AppTypeGame && x.ComparableName.Equals(comparableName));
             if (app != null) _log.Info($"Successfully got app {app}");
@@ -255,6 +254,11 @@ namespace GoldbergGUI.Core.Services
             }
 
             return dlcList;
+        }
+
+        private static string PrepareStringToCompare(string name)
+        {
+            return Regex.Replace(name, Misc.AlphaNumOnlyRegex, "").ToLower();
         }
     }
 }

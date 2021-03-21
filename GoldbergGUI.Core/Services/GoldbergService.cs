@@ -23,8 +23,6 @@ namespace GoldbergGUI.Core.Services
         public Task<GoldbergGlobalConfiguration> GetGlobalSettings();
         public Task SetGlobalSettings(GoldbergGlobalConfiguration configuration);
         public bool GoldbergApplied(string path);
-        // public Task<bool> Download();
-        // public Task Extract(string archivePath);
         public Task GenerateInterfacesFile(string filePath);
         public List<string> Languages();
     }
