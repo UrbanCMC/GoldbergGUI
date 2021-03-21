@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
-using GoldbergGUI.Core.Utils;
 using SQLite;
 
 // ReSharper disable UnusedMember.Global
@@ -15,8 +13,6 @@ namespace GoldbergGUI.Core.Models
     [Table("steamapp")]
     public class SteamApp
     {
-        private string _name;
-
         [JsonPropertyName("appid")]
         [Column("appid")]
         [PrimaryKey]
@@ -27,18 +23,10 @@ namespace GoldbergGUI.Core.Models
         /// </summary>
         [JsonPropertyName("name")]
         [Column("name")]
-        public string Name
-        {
-            get => _name;
-            set
-            {
-                _name = value;
-                ComparableName = Regex.Replace(value, Misc.AlphaNumOnlyRegex, "").ToLower();
-            }
-        }
+        public string Name { get; set; }
 
         [Column("comparable_name")]
-        public string ComparableName { get; private set; }
+        public string ComparableName { get; set; }
 
         /// <summary>
         /// App type (Game, DLC, ...)
@@ -84,30 +72,4 @@ namespace GoldbergGUI.Core.Models
     {
         [JsonPropertyName("response")] public override AppList AppList { get; set; }
     }
-
-    /*[Table("apptype")]
-    public class AppType
-    {
-        private AppType(string value)
-        {
-            var db = new SQLiteConnection("steamapps.db");
-            db.CreateTable<AppType>();
-            Value = value;
-        }
-
-        [PrimaryKey, AutoIncrement]
-        [Column("id")]
-        public int Id { get; }
-
-        [Column("value")]
-        public string Value { get; }
-
-        [Ignore] public static AppType Game { get; } = new AppType("game");
-        [Ignore] public static AppType DLC { get; } = new AppType("dlc");
-        [Ignore] public static AppType Music { get; } = new AppType("music");
-        [Ignore] public static AppType Demo { get; } = new AppType("demo");
-        [Ignore] public static AppType Ad { get; } = new AppType("advertising");
-        [Ignore] public static AppType Mod { get; } = new AppType("mod");
-        [Ignore] public static AppType Video { get; } = new AppType("video");
-    }*/
 }

@@ -128,6 +128,7 @@ namespace GoldbergGUI.Core.Services
                     foreach (var steamApp in cacheRaw)
                     {
                         steamApp.type = steamCache.SteamAppType;
+                        steamApp.ComparableName = Regex.Replace(steamApp.Name, Misc.AlphaNumOnlyRegex, "").ToLower();
                         cache.Add(steamApp);
                     }
 
@@ -149,8 +150,8 @@ namespace GoldbergGUI.Core.Services
         {
             _log.Info($"Trying to get app {name}");
             var comparableName = Regex.Replace(name, Misc.AlphaNumOnlyRegex, "").ToLower();
-            var app = _db.Table<SteamApp>().Where(x => x.type == AppTypeGame)
-                .FirstOrDefault(x => x.ComparableName.Equals(comparableName));
+            var app = _db.Table<SteamApp>()
+                .FirstOrDefault(x => x.type == AppTypeGame && x.ComparableName.Equals(comparableName));
             if (app != null) _log.Info($"Successfully got app {app}");
             return app;
         }
