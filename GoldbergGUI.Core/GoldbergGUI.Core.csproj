@@ -12,6 +12,7 @@
     <PackageReference Include="MvvmCross" Version="7.1.2" />
     <PackageReference Include="NinjaNye.SearchExtensions" Version="3.0.1" />
     <PackageReference Include="SharpCompress" Version="0.26.0" />
+    <PackageReference Include="sqlite-net-pcl" Version="1.7.335" />
     <PackageReference Include="SteamStorefrontAPI.NETStandard" Version="1.0.0" />
   </ItemGroup>
 

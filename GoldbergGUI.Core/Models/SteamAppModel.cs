@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using GoldbergGUI.Core.Utils;
+using SQLite;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable ClassNeverInstantiated.Global
@@ -11,44 +12,51 @@ using GoldbergGUI.Core.Utils;
 // ReSharper disable InconsistentNaming
 namespace GoldbergGUI.Core.Models
 {
+    [Table("steamapp")]
     public class SteamApp
     {
         private string _name;
-        private string _comparableName;
-        [JsonPropertyName("appid")] public int AppId { get; set; }
+
+        [JsonPropertyName("appid")]
+        [Column("appid")]
+        [PrimaryKey]
+        public int AppId { get; set; }
 
         /// <summary>
         /// Name of Steam app
         /// </summary>
         [JsonPropertyName("name")]
+        [Column("name")]
         public string Name
         {
             get => _name;
             set
             {
                 _name = value;
-                _comparableName = Regex.Replace(value, Misc.AlphaNumOnlyRegex, "").ToLower();
+                ComparableName = Regex.Replace(value, Misc.AlphaNumOnlyRegex, "").ToLower();
             }
         }
-        
-        /// <summary>
-        /// Trimmed and cleaned name of Steam app, used for comparisons.
-        /// </summary>
-        public bool CompareName(string value) => _comparableName.Equals(value);
+
+        [Column("comparable_name")]
+        public string ComparableName { get; private set; }
 
         /// <summary>
         /// App type (Game, DLC, ...)
         /// </summary>
-        public AppType type { get; set; }
+        [Column("type")]
+        public string type { get; set; }
 
         public override string ToString()
         {
             return $"{AppId}={Name}";
         }
 
-        [JsonPropertyName("last_modified")] public long LastModified { get; set; }
+        [JsonPropertyName("last_modified")]
+        [Ignore]
+        public long LastModified { get; set; }
 
         [JsonPropertyName("price_change_number")]
+        [Ignore]
         public long PriceChangeNumber { get; set; }
     }
 
@@ -77,18 +85,29 @@ namespace GoldbergGUI.Core.Models
         [JsonPropertyName("response")] public override AppList AppList { get; set; }
     }
 
+    /*[Table("apptype")]
     public class AppType
     {
-        private AppType(string value) => Value = value;
+        private AppType(string value)
+        {
+            var db = new SQLiteConnection("steamapps.db");
+            db.CreateTable<AppType>();
+            Value = value;
+        }
 
+        [PrimaryKey, AutoIncrement]
+        [Column("id")]
+        public int Id { get; }
+
+        [Column("value")]
         public string Value { get; }
 
-        public static AppType Game { get; } = new AppType("game");
-        public static AppType DLC { get; } = new AppType("dlc");
-        public static AppType Music { get; } = new AppType("music");
-        public static AppType Demo { get; } = new AppType("demo");
-        public static AppType Ad { get; } = new AppType("advertising");
-        public static AppType Mod { get; } = new AppType("mod");
-        public static AppType Video { get; } = new AppType("video");
-    }
+        [Ignore] public static AppType Game { get; } = new AppType("game");
+        [Ignore] public static AppType DLC { get; } = new AppType("dlc");
+        [Ignore] public static AppType Music { get; } = new AppType("music");
+        [Ignore] public static AppType Demo { get; } = new AppType("demo");
+        [Ignore] public static AppType Ad { get; } = new AppType("advertising");
+        [Ignore] public static AppType Mod { get; } = new AppType("mod");
+        [Ignore] public static AppType Video { get; } = new AppType("video");
+    }*/
 }
