@@ -20,9 +20,9 @@ namespace GoldbergGUI.Core.Services
     public interface ISteamService
     {
         public Task Initialize(IMvxLog log);
-        public IEnumerable<SteamApp> GetListOfAppsByName(string name);
-        public SteamApp GetAppByName(string name);
-        public SteamApp GetAppById(int appid);
+        public Task<IEnumerable<SteamApp>> GetListOfAppsByName(string name);
+        public Task<SteamApp> GetAppByName(string name);
+        public Task<SteamApp> GetAppById(int appid);
         public Task<List<SteamApp>> GetListOfDlc(SteamApp steamApp, bool useSteamDb);
     }
 
@@ -78,7 +78,6 @@ namespace GoldbergGUI.Core.Services
         private const string UserAgent =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) " +
             "Chrome/87.0.4280.88 Safari/537.36";
-
         private const string AppTypeGame = "game";
         private const string AppTypeDlc = "dlc";
         private const string Database = "steamapps.cache";
@@ -134,36 +133,37 @@ namespace GoldbergGUI.Core.Services
                         cache.Add(steamApp);
                     }
 
-                    await _db.InsertAllAsync(cache).ConfigureAwait(false);
+                    await _db.InsertAllAsync(cache, "OR IGNORE").ConfigureAwait(false);
                 }
             }
         }
 
-        public IEnumerable<SteamApp> GetListOfAppsByName(string name)
+        public async Task<IEnumerable<SteamApp>> GetListOfAppsByName(string name)
         {
-            var query = _db.Table<SteamApp>()
-                .Where(x => x.type == AppTypeGame).ToListAsync().Result;
+            var query = await _db.Table<SteamApp>()
+                .Where(x => x.type == AppTypeGame).ToListAsync().ConfigureAwait(false);
             var listOfAppsByName = query.Search(x => x.Name)
                 .SetCulture(StringComparison.OrdinalIgnoreCase)
                 .ContainingAll(name.Split(' '));
             return listOfAppsByName;
         }
 
-        public SteamApp GetAppByName(string name)
+        public async Task<SteamApp> GetAppByName(string name)
         {
             _log.Info($"Trying to get app {name}");
             var comparableName = PrepareStringToCompare(name);
-            var app = _db.Table<SteamApp>()
-                .FirstOrDefaultAsync(x => x.type == AppTypeGame && x.ComparableName.Equals(comparableName)).Result;
+            var app = await _db.Table<SteamApp>()
+                .FirstOrDefaultAsync(x => x.type == AppTypeGame && x.ComparableName.Equals(comparableName))
+                .ConfigureAwait(false);
             if (app != null) _log.Info($"Successfully got app {app}");
             return app;
         }
 
-        public SteamApp GetAppById(int appid)
+        public async Task<SteamApp> GetAppById(int appid)
         {
             _log.Info($"Trying to get app with ID {appid}");
-            var app = _db.Table<SteamApp>().Where(x => x.type == AppTypeGame)
-                .FirstOrDefaultAsync(x => x.AppId.Equals(appid)).Result;
+            var app = await _db.Table<SteamApp>().Where(x => x.type == AppTypeGame)
+                .FirstOrDefaultAsync(x => x.AppId.Equals(appid)).ConfigureAwait(false);
             if (app != null) _log.Info($"Successfully got app {app}");
             return app;
         }

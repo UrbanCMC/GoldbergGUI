@@ -321,7 +321,7 @@ namespace GoldbergGUI.Core.ViewModels
 
             MainWindowEnabled = false;
             StatusText = "Trying to find AppID...";
-            var appByName = _steam.GetAppByName(_gameName);
+            var appByName = await _steam.GetAppByName(_gameName).ConfigureAwait(false);
             if (appByName != null)
             {
                 GameName = appByName.Name;
@@ -329,7 +329,7 @@ namespace GoldbergGUI.Core.ViewModels
             }
             else
             {
-                var list = _steam.GetListOfAppsByName(GameName);
+                var list = await _steam.GetListOfAppsByName(GameName).ConfigureAwait(false);
                 var steamApps = list as SteamApp[] ?? list.ToArray();
                 if (steamApps.Length == 1)
                 {
@@ -364,7 +364,7 @@ namespace GoldbergGUI.Core.ViewModels
                 return;
             }
 
-            var steamApp = await Task.Run(() => _steam.GetAppById(AppId)).ConfigureAwait(false);
+            var steamApp = await _steam.GetAppById(AppId).ConfigureAwait(false);
             if (steamApp != null) GameName = steamApp.Name;
         }
 
