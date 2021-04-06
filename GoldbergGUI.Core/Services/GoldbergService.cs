@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows;
 using GoldbergGUI.Core.Models;
 using GoldbergGUI.Core.Utils;
 using MvvmCross.Logging;
@@ -85,7 +86,10 @@ namespace GoldbergGUI.Core.Services
             _log = log;
 
             var download = await Download().ConfigureAwait(false);
-            if (download) await Extract(_goldbergZipPath).ConfigureAwait(false);
+            if (download)
+            {
+                await Extract(_goldbergZipPath).ConfigureAwait(false);
+            }
             return await GetGlobalSettings().ConfigureAwait(false);
         }
 
@@ -379,15 +383,24 @@ namespace GoldbergGUI.Core.Services
 
         private async Task StartDownload(string downloadUrl)
         {
-            var client = new HttpClient();
-            _log.Debug(downloadUrl);
-            await using var fileStream = File.OpenWrite(_goldbergZipPath);
-            //client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead)
-            var task = client.GetFileAsync(downloadUrl, fileStream).ConfigureAwait(false);
-            await task;
-            if (task.GetAwaiter().IsCompleted)
+            try
             {
-                _log.Info("Download finished!");
+                var client = new HttpClient();
+                _log.Debug(downloadUrl);
+                await using var fileStream = File.OpenWrite(_goldbergZipPath);
+                //client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead)
+                var task = client.GetFileAsync(downloadUrl, fileStream).ConfigureAwait(false);
+                await task;
+                if (task.GetAwaiter().IsCompleted)
+                {
+                    _log.Info("Download finished!");
+                }
+            }
+            catch (Exception e)
+            {
+                ShowErrorMessage();
+                _log.Error(e.ToString);
+                Environment.Exit(1);
             }
         }
 
@@ -398,10 +411,31 @@ namespace GoldbergGUI.Core.Services
             _log.Debug("Start extraction...");
             await Task.Run(() =>
             {
-                Directory.Delete(_goldbergPath, true);
-                ZipFile.ExtractToDirectory(archivePath, _goldbergPath);
+                try
+                {
+                    Directory.Delete(_goldbergPath, true);
+                    ZipFile.ExtractToDirectory(archivePath, _goldbergPath);
+                }
+                catch (Exception e)
+                {
+                    ShowErrorMessage();
+                    _log.Error(e.ToString);
+                    Environment.Exit(1);
+                    // throw;
+                }
             }).ConfigureAwait(false);
             _log.Debug("Extraction done!");
+        }
+
+        private void ShowErrorMessage()
+        {
+            if (Directory.Exists(_goldbergPath))
+            {
+                Directory.Delete(_goldbergPath, true);
+            }
+            Directory.CreateDirectory(_goldbergPath);
+            MessageBox.Show("Could not setup Goldberg Emulator!\n" +
+                            "Please download it manually and extract its content into the \"goldberg\" subfolder!");
         }
 
         // https://gitlab.com/Mr_Goldberg/goldberg_emulator/-/blob/master/generate_interfaces_file.cpp

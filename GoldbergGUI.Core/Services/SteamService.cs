@@ -215,57 +215,65 @@ namespace GoldbergGUI.Core.Services
                     // Get Cloudflare cookie
                     // Scrape and parse HTML page
                     // Add missing to DLC list
-                    
+
                     // ReSharper disable once InvertIf
                     if (useSteamDb)
                     {
-                        var steamDbUri = new Uri($"https://steamdb.info/app/{steamApp.AppId}/dlc/");
-
-                        var client = new HttpClient();
-                        client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
-
-                        _log.Info("Get SteamDB App");
-                        var httpCall = client.GetAsync(steamDbUri);
-                        var response = await httpCall.ConfigureAwait(false);
-                        _log.Debug(httpCall.Status.ToString());
-                        _log.Debug(response.EnsureSuccessStatusCode().ToString());
-
-                        var readAsStringAsync = response.Content.ReadAsStringAsync();
-                        var responseBody = await readAsStringAsync.ConfigureAwait(false);
-                        _log.Debug(readAsStringAsync.Status.ToString());
-
-                        var parser = new HtmlParser();
-                        var doc = parser.ParseDocument(responseBody);
-
-                        var query1 = doc.QuerySelector("#dlc");
-                        if (query1 != null)
+                        try
                         {
-                            var query2 = query1.QuerySelectorAll(".app");
-                            foreach (var element in query2)
-                            {
-                                var dlcId = element.GetAttribute("data-appid");
-                                var query3 = element.QuerySelectorAll("td");
-                                var dlcName = query3 != null
-                                    ? query3[1].Text().Replace("\n", "").Trim()
-                                    : $"Unknown DLC {dlcId}";
-                                var dlcApp = new SteamApp {AppId = Convert.ToInt32(dlcId), Name = dlcName};
-                                var i = dlcList.FindIndex(x => x.AppId.Equals(dlcApp.AppId));
-                                if (i > -1)
-                                {
-                                    if (dlcList[i].Name.Contains("Unknown DLC")) dlcList[i] = dlcApp;
-                                }
-                                else
-                                {
-                                    dlcList.Add(dlcApp);
-                                }
-                            }
+                            var steamDbUri = new Uri($"https://steamdb.info/app/{steamApp.AppId}/dlc/");
 
-                            dlcList.ForEach(x => _log.Debug($"{x.AppId}={x.Name}"));
-                            _log.Info("Got DLC from SteamDB successfully...");
+                            var client = new HttpClient();
+                            client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+
+                            _log.Info("Get SteamDB App");
+                            var httpCall = client.GetAsync(steamDbUri);
+                            var response = await httpCall.ConfigureAwait(false);
+                            _log.Debug(httpCall.Status.ToString());
+                            _log.Debug(response.EnsureSuccessStatusCode().ToString());
+
+                            var readAsStringAsync = response.Content.ReadAsStringAsync();
+                            var responseBody = await readAsStringAsync.ConfigureAwait(false);
+                            _log.Debug(readAsStringAsync.Status.ToString());
+
+                            var parser = new HtmlParser();
+                            var doc = parser.ParseDocument(responseBody);
+
+                            var query1 = doc.QuerySelector("#dlc");
+                            if (query1 != null)
+                            {
+                                var query2 = query1.QuerySelectorAll(".app");
+                                foreach (var element in query2)
+                                {
+                                    var dlcId = element.GetAttribute("data-appid");
+                                    var query3 = element.QuerySelectorAll("td");
+                                    var dlcName = query3 != null
+                                        ? query3[1].Text().Replace("\n", "").Trim()
+                                        : $"Unknown DLC {dlcId}";
+                                    var dlcApp = new SteamApp {AppId = Convert.ToInt32(dlcId), Name = dlcName};
+                                    var i = dlcList.FindIndex(x => x.AppId.Equals(dlcApp.AppId));
+                                    if (i > -1)
+                                    {
+                                        if (dlcList[i].Name.Contains("Unknown DLC")) dlcList[i] = dlcApp;
+                                    }
+                                    else
+                                    {
+                                        dlcList.Add(dlcApp);
+                                    }
+                                }
+
+                                dlcList.ForEach(x => _log.Debug($"{x.AppId}={x.Name}"));
+                                _log.Info("Got DLC from SteamDB successfully...");
+                            }
+                            else
+                            {
+                                _log.Error("Could not get DLC from SteamDB!");
+                            }
                         }
-                        else
+                        catch (Exception e)
                         {
                             _log.Error("Could not get DLC from SteamDB!");
+                            _log.Error(e.ToString);
                         }
                     }
                 }
