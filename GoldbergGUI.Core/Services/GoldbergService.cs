@@ -407,11 +407,24 @@ namespace GoldbergGUI.Core.Services
                 _log.Debug(downloadUrl);
                 await using var fileStream = File.OpenWrite(_goldbergZipPath);
                 //client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead)
+                var httpRequestMessage = new HttpRequestMessage(HttpMethod.Head, downloadUrl);
+                var headResponse = await client.SendAsync(httpRequestMessage).ConfigureAwait(false);
+                var contentLength = headResponse.Content.Headers.ContentLength;
                 var task = client.GetFileAsync(downloadUrl, fileStream).ConfigureAwait(false);
                 await task;
                 if (task.GetAwaiter().IsCompleted)
                 {
-                    _log.Info("Download finished!");
+                    await fileStream.DisposeAsync().ConfigureAwait(false);
+                    var fileLength = new FileInfo(_goldbergZipPath).Length;
+                    // Environment.Exit(128);
+                    if (contentLength == fileLength)
+                    {
+                        _log.Info("Download finished!");
+                    }
+                    else
+                    {
+                        throw new Exception("File size does not match!");
+                    }
                 }
             }
             catch (Exception e)
@@ -463,7 +476,7 @@ namespace GoldbergGUI.Core.Services
                 ShowErrorMessage();
                 _log.Warn("Error occured while extraction! Please setup Goldberg manually");
             }
-            _log.Info("Archive extracted successfully!");
+            _log.Info("Extraction was successful!");
         }
 
         private void ShowErrorMessage()
