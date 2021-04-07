@@ -113,7 +113,8 @@ namespace GoldbergGUI.Core.Services
                     !long.TryParse(File.ReadLines(_userSteamIdPath).First().Trim(), out steamId) &&
                     steamId < 76561197960265729 && steamId > 76561202255233023)
                 {
-                    _log.Error("Invalid User Steam ID!");
+                    _log.Error("Invalid User Steam ID! Using default Steam ID...");
+                    steamId = DefaultSteamId;
                 }
 
                 if (File.Exists(_languagePath)) language = File.ReadLines(_languagePath).First().Trim();
@@ -121,6 +122,7 @@ namespace GoldbergGUI.Core.Services
                     customBroadcastIps.AddRange(
                         File.ReadLines(_customBroadcastIpsPath).Select(line => line.Trim()));
             }).ConfigureAwait(false);
+            _log.Info("Got global settings.");
             return new GoldbergGlobalConfiguration
             {
                 AccountName = accountName,
@@ -200,6 +202,7 @@ namespace GoldbergGUI.Core.Services
                 _log.Info("Empty list of custom broadcast IPs! Skipping...");
                 await Task.Run(() => File.Delete(_customBroadcastIpsPath)).ConfigureAwait(false);
             }
+            _log.Info("Setting global configuration finished.");
         }
 
         // If first time, call GenerateInterfaces
@@ -410,9 +413,7 @@ namespace GoldbergGUI.Core.Services
                 var httpRequestMessage = new HttpRequestMessage(HttpMethod.Head, downloadUrl);
                 var headResponse = await client.SendAsync(httpRequestMessage).ConfigureAwait(false);
                 var contentLength = headResponse.Content.Headers.ContentLength;
-                var task = client.GetFileAsync(downloadUrl, fileStream).ConfigureAwait(false);
-                await task;
-                if (task.GetAwaiter().IsCompleted)
+                await client.GetFileAsync(downloadUrl, fileStream).ContinueWith(async t =>
                 {
                     await fileStream.DisposeAsync().ConfigureAwait(false);
                     var fileLength = new FileInfo(_goldbergZipPath).Length;
@@ -425,7 +426,7 @@ namespace GoldbergGUI.Core.Services
                     {
                         throw new Exception("File size does not match!");
                     }
-                }
+                }).ConfigureAwait(false);
             }
             catch (Exception e)
             {
