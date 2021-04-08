@@ -170,10 +170,10 @@ namespace GoldbergGUI.Core.Services
 
         public async Task<List<SteamApp>> GetListOfDlc(SteamApp steamApp, bool useSteamDb)
         {
-            _log.Info("Get DLC");
             var dlcList = new List<SteamApp>();
             if (steamApp != null)
             {
+                _log.Info($"Get DLC for App {steamApp}");
                 var task = AppDetails.GetAsync(steamApp.AppId);
                 var steamAppDetails = await task.ConfigureAwait(true);
                 if (steamAppDetails.Type == AppTypeGame)
@@ -194,15 +194,17 @@ namespace GoldbergGUI.Core.Services
                     // Scrape and parse HTML page
                     // Add missing to DLC list
 
-                    // ReSharper disable once InvertIf
-                    if (useSteamDb)
+                    // Return current list if we don't intend to use SteamDB
+                    if (!useSteamDb) return dlcList;
+                    
+                    try
                     {
                         var steamDbUri = new Uri($"https://steamdb.info/app/{steamApp.AppId}/dlc/");
 
                         var client = new HttpClient();
                         client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
 
-                        _log.Info("Get SteamDB App");
+                        _log.Info($"Get SteamDB App {steamApp}");
                         var httpCall = client.GetAsync(steamDbUri);
                         var response = await httpCall.ConfigureAwait(false);
                         _log.Debug(httpCall.Status.ToString());
@@ -218,6 +220,7 @@ namespace GoldbergGUI.Core.Services
                         var query1 = doc.QuerySelector("#dlc");
                         if (query1 != null)
                         {
+                            _log.Info("Got list of DLC from SteamDB.");
                             var query2 = query1.QuerySelectorAll(".app");
                             foreach (var element in query2)
                             {
@@ -245,6 +248,11 @@ namespace GoldbergGUI.Core.Services
                         {
                             _log.Error("Could not get DLC from SteamDB!");
                         }
+                    }
+                    catch (Exception e)
+                    {
+                        _log.Error("Could not get DLC from SteamDB! Skipping...");
+                        _log.Error(e.ToString);
                     }
                 }
                 else

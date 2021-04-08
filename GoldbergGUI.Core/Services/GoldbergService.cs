@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows;
 using GoldbergGUI.Core.Models;
 using GoldbergGUI.Core.Utils;
 using MvvmCross.Logging;
@@ -45,7 +46,9 @@ namespace GoldbergGUI.Core.Services
         private readonly string _accountNamePath = Path.Combine(GlobalSettingsPath, "settings/account_name.txt");
         private readonly string _userSteamIdPath = Path.Combine(GlobalSettingsPath, "settings/user_steam_id.txt");
         private readonly string _languagePath = Path.Combine(GlobalSettingsPath, "settings/language.txt");
-        private readonly string _customBroadcastIpsPath = Path.Combine(GlobalSettingsPath, "settings/custom_broadcasts.txt");
+
+        private readonly string _customBroadcastIpsPath =
+            Path.Combine(GlobalSettingsPath, "settings/custom_broadcasts.txt");
 
         // ReSharper disable StringLiteralTypo
         private readonly List<string> _interfaceNames = new List<string>
@@ -83,7 +86,11 @@ namespace GoldbergGUI.Core.Services
             _log = log;
 
             var download = await Download().ConfigureAwait(false);
-            if (download) await Extract(_goldbergZipPath).ConfigureAwait(false);
+            if (download)
+            {
+                await Extract(_goldbergZipPath).ConfigureAwait(false);
+            }
+
             return await GetGlobalSettings().ConfigureAwait(false);
         }
 
@@ -102,13 +109,16 @@ namespace GoldbergGUI.Core.Services
                     !long.TryParse(File.ReadLines(_userSteamIdPath).First().Trim(), out steamId) &&
                     steamId < 76561197960265729 && steamId > 76561202255233023)
                 {
-                    _log.Error("Invalid User Steam ID!");
+                    _log.Error("Invalid User Steam ID! Using default Steam ID...");
+                    steamId = DefaultSteamId;
                 }
+
                 if (File.Exists(_languagePath)) language = File.ReadLines(_languagePath).First().Trim();
                 if (File.Exists(_customBroadcastIpsPath))
                     customBroadcastIps.AddRange(
                         File.ReadLines(_customBroadcastIpsPath).Select(line => line.Trim()));
             }).ConfigureAwait(false);
+            _log.Info("Got global settings.");
             return new GoldbergGlobalConfiguration
             {
                 AccountName = accountName,
@@ -140,21 +150,23 @@ namespace GoldbergGUI.Core.Services
                     await File.Create(_accountNamePath).DisposeAsync().ConfigureAwait(false);
                 await File.WriteAllTextAsync(_accountNamePath, DefaultAccountName).ConfigureAwait(false);
             }
+
             // User SteamID
             if (userSteamId >= 76561197960265729 && userSteamId <= 76561202255233023)
             {
                 _log.Info("Setting user Steam ID...");
-                if (!File.Exists(_userSteamIdPath)) 
+                if (!File.Exists(_userSteamIdPath))
                     await File.Create(_userSteamIdPath).DisposeAsync().ConfigureAwait(false);
                 await File.WriteAllTextAsync(_userSteamIdPath, userSteamId.ToString()).ConfigureAwait(false);
             }
             else
             {
                 _log.Info("Invalid user Steam ID! Skipping...");
-                if (!File.Exists(_userSteamIdPath)) 
+                if (!File.Exists(_userSteamIdPath))
                     await File.Create(_userSteamIdPath).DisposeAsync().ConfigureAwait(false);
                 await File.WriteAllTextAsync(_userSteamIdPath, DefaultSteamId.ToString()).ConfigureAwait(false);
             }
+
             // Language
             if (!string.IsNullOrEmpty(language))
             {
@@ -170,11 +182,12 @@ namespace GoldbergGUI.Core.Services
                     await File.Create(_languagePath).DisposeAsync().ConfigureAwait(false);
                 await File.WriteAllTextAsync(_languagePath, DefaultLanguage).ConfigureAwait(false);
             }
+
             // Custom Broadcast IPs
             if (customBroadcastIps != null && customBroadcastIps.Count > 0)
             {
                 _log.Info("Setting custom broadcast IPs...");
-                var result = 
+                var result =
                     customBroadcastIps.Aggregate("", (current, address) => $"{current}{address}\n");
                 if (!File.Exists(_customBroadcastIpsPath))
                     await File.Create(_customBroadcastIpsPath).DisposeAsync().ConfigureAwait(false);
@@ -185,6 +198,7 @@ namespace GoldbergGUI.Core.Services
                 _log.Info("Empty list of custom broadcast IPs! Skipping...");
                 await Task.Run(() => File.Delete(_customBroadcastIpsPath)).ConfigureAwait(false);
             }
+            _log.Info("Setting global configuration finished.");
         }
 
         // If first time, call GenerateInterfaces
@@ -268,7 +282,8 @@ namespace GoldbergGUI.Core.Services
             }
 
             // create steam_appid.txt
-            await File.WriteAllTextAsync(Path.Combine(path, "steam_appid.txt"), c.AppId.ToString()).ConfigureAwait(false);
+            await File.WriteAllTextAsync(Path.Combine(path, "steam_appid.txt"), c.AppId.ToString())
+                .ConfigureAwait(false);
 
             // DLC
             if (c.DlcList.Count > 0)
@@ -360,16 +375,24 @@ namespace GoldbergGUI.Core.Services
             var match = regex.Match(body);
             if (File.Exists(jobIdPath))
             {
-                _log.Info("Check if update is needed...");
-                var jobIdLocal = Convert.ToInt32(File.ReadLines(jobIdPath).First().Trim());
-                var jobIdRemote = Convert.ToInt32(match.Groups["jobid"].Value);
-                _log.Debug($"job_id: local {jobIdLocal}; remote {jobIdRemote}");
-                if (jobIdLocal.Equals(jobIdRemote))
+                try
                 {
-                    _log.Info("Latest Goldberg emulator is already available! Skipping...");
-                    return false;
+                    _log.Info("Check if update is needed...");
+                    var jobIdLocal = Convert.ToInt32(File.ReadLines(jobIdPath).First().Trim());
+                    var jobIdRemote = Convert.ToInt32(match.Groups["jobid"].Value);
+                    _log.Debug($"job_id: local {jobIdLocal}; remote {jobIdRemote}");
+                    if (jobIdLocal.Equals(jobIdRemote))
+                    {
+                        _log.Info("Latest Goldberg emulator is already available! Skipping...");
+                        return false;
+                    }
+                }
+                catch (Exception)
+                {
+                    _log.Error("An error occured, local Goldberg setup might be broken!");
                 }
             }
+
             _log.Info("Starting download...");
             await StartDownload(match.Value).ConfigureAwait(false);
             return true;
@@ -377,15 +400,35 @@ namespace GoldbergGUI.Core.Services
 
         private async Task StartDownload(string downloadUrl)
         {
-            var client = new HttpClient();
-            _log.Debug(downloadUrl);
-            await using var fileStream = File.OpenWrite(_goldbergZipPath);
-            //client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead)
-            var task = client.GetFileAsync(downloadUrl, fileStream).ConfigureAwait(false);
-            await task;
-            if (task.GetAwaiter().IsCompleted)
+            try
             {
-                _log.Info("Download finished!");
+                var client = new HttpClient();
+                _log.Debug(downloadUrl);
+                await using var fileStream = File.OpenWrite(_goldbergZipPath);
+                //client.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead)
+                var httpRequestMessage = new HttpRequestMessage(HttpMethod.Head, downloadUrl);
+                var headResponse = await client.SendAsync(httpRequestMessage).ConfigureAwait(false);
+                var contentLength = headResponse.Content.Headers.ContentLength;
+                await client.GetFileAsync(downloadUrl, fileStream).ContinueWith(async t =>
+                {
+                    await fileStream.DisposeAsync().ConfigureAwait(false);
+                    var fileLength = new FileInfo(_goldbergZipPath).Length;
+                    // Environment.Exit(128);
+                    if (contentLength == fileLength)
+                    {
+                        _log.Info("Download finished!");
+                    }
+                    else
+                    {
+                        throw new Exception("File size does not match!");
+                    }
+                }).ConfigureAwait(false);
+            }
+            catch (Exception e)
+            {
+                ShowErrorMessage();
+                _log.Error(e.ToString);
+                Environment.Exit(1);
             }
         }
 
@@ -393,13 +436,56 @@ namespace GoldbergGUI.Core.Services
         // Extract all from archive to subfolder ./goldberg/
         private async Task Extract(string archivePath)
         {
+            var errorOccured = false;
             _log.Debug("Start extraction...");
-            await Task.Run(() =>
+            Directory.Delete(_goldbergPath, true);
+            Directory.CreateDirectory(_goldbergPath);
+            using (var archive = await Task.Run(() => ZipFile.OpenRead(archivePath)).ConfigureAwait(false))
+            {
+                foreach (var entry in archive.Entries)
+                {
+                    await Task.Run(() =>
+                    {
+                        try
+                        {
+                            var fullPath = Path.Combine(_goldbergPath, entry.FullName);
+                            if (string.IsNullOrEmpty(entry.Name))
+                            {
+                                Directory.CreateDirectory(fullPath);
+                            }
+                            else
+                            {
+                                entry.ExtractToFile(fullPath, true);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            errorOccured = true;
+                            _log.Error($"Error while trying to extract {entry.FullName}");
+                            _log.Error(e.ToString);
+                        }
+                    }).ConfigureAwait(false);
+                }
+            }
+
+            if (errorOccured)
+            {
+                ShowErrorMessage();
+                _log.Warn("Error occured while extraction! Please setup Goldberg manually");
+            }
+            _log.Info("Extraction was successful!");
+        }
+
+        private void ShowErrorMessage()
+        {
+            if (Directory.Exists(_goldbergPath))
             {
                 Directory.Delete(_goldbergPath, true);
-                ZipFile.ExtractToDirectory(archivePath, _goldbergPath);
-            }).ConfigureAwait(false);
-            _log.Debug("Extraction done!");
+            }
+
+            Directory.CreateDirectory(_goldbergPath);
+            MessageBox.Show("Could not setup Goldberg Emulator!\n" +
+                            "Please download it manually and extract its content into the \"goldberg\" subfolder!");
         }
 
         // https://gitlab.com/Mr_Goldberg/goldberg_emulator/-/blob/master/generate_interfaces_file.cpp
