@@ -29,6 +29,7 @@ namespace GoldbergGUI.Core.Services
     }
 
     // ReSharper disable once UnusedType.Global
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class GoldbergService : IGoldbergService
     {
         private IMvxLog _log;
@@ -221,6 +222,7 @@ namespace GoldbergGUI.Core.Services
             }
 
             var dlcTxt = Path.Combine(path, "steam_settings", "DLC.txt");
+            var appPathTxt = Path.Combine(path, "steam_settings", "app_paths.txt");
             if (File.Exists(dlcTxt))
             {
                 _log.Info("Getting DLCs...");
@@ -236,6 +238,20 @@ namespace GoldbergGUI.Core.Services
                             AppId = Convert.ToInt32(match.Groups["id"].Value),
                             Name = match.Groups["name"].Value
                         });
+                }
+
+                // ReSharper disable once InvertIf
+                if (File.Exists(appPathTxt))
+                {
+                    var appPathAllLinesAsync = await File.ReadAllLinesAsync(dlcTxt).ConfigureAwait(false);
+                    var appPathExpression = new Regex(@"(?<id>.*) *= *(?<appPath>.*)");
+                    foreach (var line in appPathAllLinesAsync)
+                    {
+                        var match = appPathExpression.Match(line);
+                        if (match.Success)
+                            dlcList[Convert.ToInt32(match.Groups["id"].Value)].AppPath = 
+                                match.Groups["appPath"].Value;
+                    }
                 }
             }
             else
@@ -273,6 +289,7 @@ namespace GoldbergGUI.Core.Services
             {
                 CopyDllFiles(path, x64Name);
             }
+            _log.Info("DLL setup finished!");
 
             // Create steam_settings folder if missing
             _log.Info("Saving settings...");
@@ -285,50 +302,81 @@ namespace GoldbergGUI.Core.Services
             await File.WriteAllTextAsync(Path.Combine(path, "steam_appid.txt"), c.AppId.ToString())
                 .ConfigureAwait(false);
 
-            // DLC
+            // DLC + App path
             if (c.DlcList.Count > 0)
             {
-                var dlcString = "";
-                c.DlcList.ForEach(x => dlcString += $"{x}\n");
-                await File.WriteAllTextAsync(Path.Combine(path, "steam_settings", "DLC.txt"), dlcString)
+                _log.Info("Saving DLC settings...");
+                var dlcContent = "";
+                //var depotContent = "";
+                var appPathContent = "";
+                c.DlcList.ForEach(x =>
+                {
+                    dlcContent += $"{x}\n";
+                    //depotContent += $"{x.DepotId}\n";
+                    appPathContent += $"{x.AppId}={x.AppPath}\n";
+                });
+                await File.WriteAllTextAsync(Path.Combine(path, "steam_settings", "DLC.txt"), dlcContent)
                     .ConfigureAwait(false);
+                
+                /*if (!string.Equals(depotContent, ""))
+                {
+                    await File.WriteAllTextAsync(Path.Combine(path, "steam_settings", "depots.txt"), depotContent)
+                        .ConfigureAwait(false);
+                }*/
+                
+                if (!string.Equals(appPathContent, ""))
+                {
+                    await File.WriteAllTextAsync(Path.Combine(path, "steam_settings", "app_paths.txt"), appPathContent)
+                        .ConfigureAwait(false);
+                }
+                _log.Info("Saved DLC settings.");
             }
             else
             {
+                _log.Info("No DLC set! Removing DLC configuration files...");
                 if (File.Exists(Path.Combine(path, "steam_settings", "DLC.txt")))
                     File.Delete(Path.Combine(path, "steam_settings", "DLC.txt"));
+                if (File.Exists(Path.Combine(path, "steam_settings", "app_paths.txt")))
+                    File.Delete(Path.Combine(path, "steam_settings", "app_paths.txt"));
+                _log.Info("Removed DLC configuration files.");
             }
 
             // Offline
             if (c.Offline)
             {
+                _log.Info("Create offline.txt");
                 await File.Create(Path.Combine(path, "steam_settings", "offline.txt")).DisposeAsync()
                     .ConfigureAwait(false);
             }
             else
             {
+                _log.Info("Delete offline.txt if it exists");
                 File.Delete(Path.Combine(path, "steam_settings", "offline.txt"));
             }
 
             // Disable Networking
             if (c.DisableNetworking)
             {
+                _log.Info("Create disable_networking.txt");
                 await File.Create(Path.Combine(path, "steam_settings", "disable_networking.txt")).DisposeAsync()
                     .ConfigureAwait(false);
             }
             else
             {
+                _log.Info("Delete disable_networking.txt if it exists");
                 File.Delete(Path.Combine(path, "steam_settings", "disable_networking.txt"));
             }
 
             // Disable Overlay
             if (c.DisableOverlay)
             {
+                _log.Info("Create disable_overlay.txt");
                 await File.Create(Path.Combine(path, "steam_settings", "disable_overlay.txt")).DisposeAsync()
                     .ConfigureAwait(false);
             }
             else
             {
+                _log.Info("Delete disable_overlay.txt if it exists");
                 File.Delete(Path.Combine(path, "steam_settings", "disable_overlay.txt"));
             }
         }
@@ -337,17 +385,21 @@ namespace GoldbergGUI.Core.Services
         {
             var steamApiDll = Path.Combine(path, $"{name}.dll");
             var originalDll = Path.Combine(path, $"{name}_o.dll");
-            var guiBackup = Path.Combine(path, $"{name}.dll.GOLDBERGGUIBACKUP");
+            var guiBackup = Path.Combine(path, $".{name}.dll.GOLDBERGGUIBACKUP");
             var goldbergDll = Path.Combine(_goldbergPath, $"{name}.dll");
 
             if (!File.Exists(originalDll))
+            {
+                _log.Info("Back up original Steam API DLL...");
                 File.Move(steamApiDll, originalDll);
+            }
             else
             {
                 File.Move(steamApiDll, guiBackup, true);
                 File.SetAttributes(guiBackup, FileAttributes.Hidden);
             }
 
+            _log.Info("Copy Goldberg DLL to target path...");
             File.Copy(goldbergDll, steamApiDll);
         }
 
@@ -411,6 +463,7 @@ namespace GoldbergGUI.Core.Services
                 var contentLength = headResponse.Content.Headers.ContentLength;
                 await client.GetFileAsync(downloadUrl, fileStream).ContinueWith(async t =>
                 {
+                    // ReSharper disable once AccessToDisposedClosure
                     await fileStream.DisposeAsync().ConfigureAwait(false);
                     var fileLength = new FileInfo(_goldbergZipPath).Length;
                     // Environment.Exit(128);
