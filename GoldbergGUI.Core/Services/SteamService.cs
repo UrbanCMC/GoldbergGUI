@@ -180,10 +180,10 @@ namespace GoldbergGUI.Core.Services
                 {
                     steamAppDetails.DLC.ForEach(async x =>
                     {
-                        var result = await _db.Table<SteamApp>().Where(z => z.type == AppTypeDlc)
+                        var result = await _db.Table<DlcApp>().Where(z => z.type == AppTypeDlc)
                                          .FirstOrDefaultAsync(y => y.AppId.Equals(x)).ConfigureAwait(true)
-                                     ?? new SteamApp {AppId = x, Name = $"Unknown DLC {x}"};
-                        dlcList.Add(result as DlcApp);
+                                     ?? new DlcApp() {AppId = x, Name = $"Unknown DLC {x}"};
+                        dlcList.Add(result);
                         _log.Debug($"{result.AppId}={result.Name}");
                     });
 
@@ -229,15 +229,15 @@ namespace GoldbergGUI.Core.Services
                                 var dlcName = query3 != null
                                     ? query3[1].Text().Replace("\n", "").Trim()
                                     : $"Unknown DLC {dlcId}";
-                                var dlcApp = new SteamApp {AppId = Convert.ToInt32(dlcId), Name = dlcName};
+                                var dlcApp = new DlcApp {AppId = Convert.ToInt32(dlcId), Name = dlcName};
                                 var i = dlcList.FindIndex(x => x.AppId.Equals(dlcApp.AppId));
                                 if (i > -1)
                                 {
-                                    if (dlcList[i].Name.Contains("Unknown DLC")) dlcList[i] = dlcApp as DlcApp;
+                                    if (dlcList[i].Name.Contains("Unknown DLC")) dlcList[i] = dlcApp;
                                 }
                                 else
                                 {
-                                    dlcList.Add(dlcApp as DlcApp);
+                                    dlcList.Add(dlcApp);
                                 }
                             }
 

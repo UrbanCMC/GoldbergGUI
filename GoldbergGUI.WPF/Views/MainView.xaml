@@ -57,7 +57,7 @@
                                         <DataGridTextColumn Header="App ID" Binding="{Binding AppId}" Width="80" />
                                         <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
                                         <DataGridTextColumn Header="Depot ID" Binding="{Binding DepotId}" Width="80" Visibility="{Binding Source={x:Reference showOptionalDlcSettings}, Path=IsChecked, Converter={StaticResource B2V}}"/>
-                                        <DataGridTextColumn Header="Depot Name" Binding="{Binding DepotName}" Width="*" Visibility="{Binding Source={x:Reference showOptionalDlcSettings}, Path=IsChecked, Converter={StaticResource B2V}}" />
+                                        <!--<DataGridTextColumn Header="Depot Name" Binding="{Binding DepotName}" Width="*" Visibility="{Binding Source={x:Reference showOptionalDlcSettings}, Path=IsChecked, Converter={StaticResource B2V}}" />-->
                                         <DataGridTextColumn Header="App Path" Binding="{Binding AppPath}" Width="*" Visibility="{Binding Source={x:Reference showOptionalDlcSettings}, Path=IsChecked, Converter={StaticResource B2V}}" />
                                     </DataGrid.Columns>
                                 </DataGrid>

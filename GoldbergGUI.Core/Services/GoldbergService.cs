@@ -231,11 +231,11 @@ namespace GoldbergGUI.Core.Services
                 {
                     var match = expression.Match(line);
                     if (match.Success)
-                        dlcList.Add(new SteamApp
+                        dlcList.Add(new DlcApp()
                         {
                             AppId = Convert.ToInt32(match.Groups["id"].Value),
                             Name = match.Groups["name"].Value
-                        } as DlcApp);
+                        });
                 }
             }
             else

@@ -67,8 +67,14 @@ namespace GoldbergGUI.Core.Models
 
     public class DlcApp : SteamApp
     {
+        /// <summary>
+        /// ID of depot (optional)
+        /// </summary>
         public int? DepotId { get; set; }
-        public string DepotName { get; set; }
+        //public string DepotName { get; set; }
+        /// <summary>
+        /// Path to DLC (relative to Steam API DLL) (optional)
+        /// </summary>
         public string AppPath { get; set; }
     }
 
