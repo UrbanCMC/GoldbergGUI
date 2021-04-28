@@ -23,7 +23,7 @@ namespace GoldbergGUI.Core.Services
         public Task<IEnumerable<SteamApp>> GetListOfAppsByName(string name);
         public Task<SteamApp> GetAppByName(string name);
         public Task<SteamApp> GetAppById(int appid);
-        public Task<List<SteamApp>> GetListOfDlc(SteamApp steamApp, bool useSteamDb);
+        public Task<List<DlcApp>> GetListOfDlc(SteamApp steamApp, bool useSteamDb);
     }
 
     class SteamCache
@@ -168,9 +168,9 @@ namespace GoldbergGUI.Core.Services
             return app;
         }
 
-        public async Task<List<SteamApp>> GetListOfDlc(SteamApp steamApp, bool useSteamDb)
+        public async Task<List<DlcApp>> GetListOfDlc(SteamApp steamApp, bool useSteamDb)
         {
-            var dlcList = new List<SteamApp>();
+            var dlcList = new List<DlcApp>();
             if (steamApp != null)
             {
                 _log.Info($"Get DLC for App {steamApp}");
@@ -183,7 +183,7 @@ namespace GoldbergGUI.Core.Services
                         var result = await _db.Table<SteamApp>().Where(z => z.type == AppTypeDlc)
                                          .FirstOrDefaultAsync(y => y.AppId.Equals(x)).ConfigureAwait(true)
                                      ?? new SteamApp {AppId = x, Name = $"Unknown DLC {x}"};
-                        dlcList.Add(result);
+                        dlcList.Add(result as DlcApp);
                         _log.Debug($"{result.AppId}={result.Name}");
                     });
 
@@ -233,11 +233,11 @@ namespace GoldbergGUI.Core.Services
                                 var i = dlcList.FindIndex(x => x.AppId.Equals(dlcApp.AppId));
                                 if (i > -1)
                                 {
-                                    if (dlcList[i].Name.Contains("Unknown DLC")) dlcList[i] = dlcApp;
+                                    if (dlcList[i].Name.Contains("Unknown DLC")) dlcList[i] = dlcApp as DlcApp;
                                 }
                                 else
                                 {
-                                    dlcList.Add(dlcApp);
+                                    dlcList.Add(dlcApp as DlcApp);
                                 }
                             }
 

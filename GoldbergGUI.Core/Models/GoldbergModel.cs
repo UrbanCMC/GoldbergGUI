@@ -32,13 +32,13 @@ namespace GoldbergGUI.Core.Models
         /// <summary>
         /// List of DLC
         /// </summary>
-        public List<SteamApp> DlcList { get; set; }
+        public List<DlcApp> DlcList { get; set; }
         
-        public List<Depot> Depots { get; set; }
+        //public List<Depot> Depots { get; set; }
         
         public List<Group> SubscribedGroups { get; set; }
         
-        public List<AppPath> AppPaths { get; set; }
+        //public List<AppPath> AppPaths { get; set; }
         
         public List<Achievement> Achievements { get; set; }
         
@@ -65,20 +65,11 @@ namespace GoldbergGUI.Core.Models
         public GoldbergGlobalConfiguration OverwrittenGlobalConfiguration { get; set; }
     }
 
-    public class Depot
+    public class DlcApp : SteamApp
     {
-        /// <summary>
-        /// ID of Depot.
-        /// </summary>
-        public int DepotId { get; set; }
-        /// <summary>
-        /// Name of Depot.
-        /// </summary>
-        public string Name { get; set; }
-        /// <summary>
-        /// Associated DLC App ID, can be null (e.g. if Depot is for base game).
-        /// </summary>
-        public int DlcAppId { get; set; }
+        public int? DepotId { get; set; }
+        public string DepotName { get; set; }
+        public string AppPath { get; set; }
     }
 
     public class Group
@@ -95,12 +86,6 @@ namespace GoldbergGUI.Core.Models
         /// App ID of game associated with group (https://steamcommunity.com/games/218620/memberslistxml/?xml=1).
         /// </summary>
         public int AppId { get; set; }
-    }
-
-    public class AppPath
-    {
-        public int AppId { get; set; }
-        public string Path { get; set; }
     }
 
     public class Achievement

@@ -7,6 +7,9 @@
                   xmlns:viewmodel="clr-namespace:GoldbergGUI.Core.ViewModels;assembly=GoldbergGUI.Core"
                   mc:Ignorable="d"
                   d:DesignHeight="500" d:DesignWidth="400" d:DataContext="{d:DesignInstance Type=viewmodel:MainViewModel }">
+    <views:MvxWpfView.Resources>
+        <BooleanToVisibilityConverter x:Key="B2V" />
+    </views:MvxWpfView.Resources>
     <Grid Margin="0,0,0,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -53,10 +56,13 @@
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="App ID" Binding="{Binding AppId}" Width="80" />
                                         <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*" />
+                                        <DataGridTextColumn Header="Depot ID" Binding="{Binding DepotId}" Width="80" Visibility="{Binding Source={x:Reference showOptionalDlcSettings}, Path=IsChecked, Converter={StaticResource B2V}}"/>
+                                        <DataGridTextColumn Header="Depot Name" Binding="{Binding DepotName}" Width="*" Visibility="{Binding Source={x:Reference showOptionalDlcSettings}, Path=IsChecked, Converter={StaticResource B2V}}" />
+                                        <DataGridTextColumn Header="App Path" Binding="{Binding AppPath}" Width="*" Visibility="{Binding Source={x:Reference showOptionalDlcSettings}, Path=IsChecked, Converter={StaticResource B2V}}" />
                                     </DataGrid.Columns>
                                 </DataGrid>
-                                <Button Content="Get _DLCs for AppID" Command="{Binding GetListOfDlcCommand}" Grid.Row="1" Width="120" HorizontalAlignment="Right" Margin="0,5,125,0" Height="20"/>
-                                <Button Content="_Advanced Settings..." Grid.Row="1" Width="120" HorizontalAlignment="Right" Margin="0,5,0,0" Height="20" IsEnabled="False" ToolTip="Work in progress..."/>
+                                <CheckBox Grid.Row="1" x:Name="showOptionalDlcSettings" Margin="0,5,0,0" Content="Show optional settings"/>
+                                <Button Content="Get _DLCs for AppID" Command="{Binding GetListOfDlcCommand}" Grid.Row="1" Width="120" HorizontalAlignment="Right" Margin="0,5,0,0" Height="20"/>
                             </Grid>
                         </GroupBox>
                     </Grid>

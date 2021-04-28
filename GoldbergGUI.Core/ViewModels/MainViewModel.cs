@@ -30,7 +30,7 @@ namespace GoldbergGUI.Core.ViewModels
         private int _appId;
 
         //private SteamApp _currentGame;
-        private ObservableCollection<SteamApp> _dlcs;
+        private ObservableCollection<DlcApp> _dlcs;
         private string _accountName;
         private long _steamId;
         private bool _offline;
@@ -130,7 +130,7 @@ namespace GoldbergGUI.Core.ViewModels
         }
 
         // ReSharper disable once InconsistentNaming
-        public ObservableCollection<SteamApp> DLCs
+        public ObservableCollection<DlcApp> DLCs
         {
             get => _dlcs;
             set
@@ -382,7 +382,7 @@ namespace GoldbergGUI.Core.ViewModels
             StatusText = "Trying to get list of DLCs...";
             var listOfDlc = await _steam.GetListOfDlc(new SteamApp {AppId = AppId, Name = GameName}, true)
                 .ConfigureAwait(false);
-            DLCs = new MvxObservableCollection<SteamApp>(listOfDlc);
+            DLCs = new MvxObservableCollection<DlcApp>(listOfDlc);
             MainWindowEnabled = true;
             if (DLCs.Count > 0)
             {
@@ -480,7 +480,7 @@ namespace GoldbergGUI.Core.ViewModels
                 var expression = new Regex(@"(?<id>.*) *= *(?<name>.*)");
                 var pastedDlc = (from line in result.Split(new[] {"\n", "\r\n"},
                     StringSplitOptions.RemoveEmptyEntries) select expression.Match(line) into match
-                    where match.Success select new SteamApp
+                    where match.Success select new DlcApp
                     {
                         AppId = Convert.ToInt32(match.Groups["id"].Value), 
                         Name = match.Groups["name"].Value
@@ -488,7 +488,7 @@ namespace GoldbergGUI.Core.ViewModels
                 if (pastedDlc.Count > 0)
                 {
                     DLCs.Clear();
-                    DLCs = new ObservableCollection<SteamApp>(pastedDlc);
+                    DLCs = new ObservableCollection<DlcApp>(pastedDlc);
                     //var empty = DLCs.Count == 1 ? "" : "s";
                     //StatusText = $"Successfully got {DLCs.Count} DLC{empty} from clipboard! Ready.";
                     var statusTextCount = DLCs.Count == 1 ? "one DLC" : $"{DLCs.Count} DLCs";
@@ -524,7 +524,7 @@ namespace GoldbergGUI.Core.ViewModels
             DllPath = "Path to game's steam_api(64).dll...";
             GameName = "Game name...";
             AppId = -1;
-            DLCs = new ObservableCollection<SteamApp>();
+            DLCs = new ObservableCollection<DlcApp>();
             AccountName = "Account name...";
             SteamId = -1;
             Offline = false;
@@ -544,7 +544,7 @@ namespace GoldbergGUI.Core.ViewModels
         private void SetFormFromConfig(GoldbergConfiguration config)
         {
             AppId = config.AppId;
-            DLCs = new ObservableCollection<SteamApp>(config.DlcList);
+            DLCs = new ObservableCollection<DlcApp>(config.DlcList);
             Offline = config.Offline;
             DisableNetworking = config.DisableNetworking;
             DisableOverlay = config.DisableOverlay;

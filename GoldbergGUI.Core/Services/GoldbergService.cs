@@ -207,7 +207,7 @@ namespace GoldbergGUI.Core.Services
         {
             _log.Info("Reading configuration...");
             var appId = -1;
-            var dlcList = new List<SteamApp>();
+            var dlcList = new List<DlcApp>();
             var steamAppidTxt = Path.Combine(path, "steam_appid.txt");
             if (File.Exists(steamAppidTxt))
             {
@@ -235,7 +235,7 @@ namespace GoldbergGUI.Core.Services
                         {
                             AppId = Convert.ToInt32(match.Groups["id"].Value),
                             Name = match.Groups["name"].Value
-                        });
+                        } as DlcApp);
                 }
             }
             else
