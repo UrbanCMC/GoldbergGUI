@@ -243,14 +243,15 @@ namespace GoldbergGUI.Core.Services
                 // ReSharper disable once InvertIf
                 if (File.Exists(appPathTxt))
                 {
-                    var appPathAllLinesAsync = await File.ReadAllLinesAsync(dlcTxt).ConfigureAwait(false);
+                    var appPathAllLinesAsync = await File.ReadAllLinesAsync(appPathTxt).ConfigureAwait(false);
                     var appPathExpression = new Regex(@"(?<id>.*) *= *(?<appPath>.*)");
                     foreach (var line in appPathAllLinesAsync)
                     {
                         var match = appPathExpression.Match(line);
-                        if (match.Success)
-                            dlcList[Convert.ToInt32(match.Groups["id"].Value)].AppPath = 
-                                match.Groups["appPath"].Value;
+                        if (!match.Success) continue;
+                        var i = dlcList.FindIndex(x => 
+                            x.AppId.Equals(Convert.ToInt32(match.Groups["id"].Value)));
+                        dlcList[i].AppPath = match.Groups["appPath"].Value;
                     }
                 }
             }
@@ -313,21 +314,28 @@ namespace GoldbergGUI.Core.Services
                 {
                     dlcContent += $"{x}\n";
                     //depotContent += $"{x.DepotId}\n";
-                    appPathContent += $"{x.AppId}={x.AppPath}\n";
+                    if (!string.IsNullOrEmpty(x.AppPath))
+                        appPathContent += $"{x.AppId}={x.AppPath}\n";
                 });
                 await File.WriteAllTextAsync(Path.Combine(path, "steam_settings", "DLC.txt"), dlcContent)
                     .ConfigureAwait(false);
                 
-                /*if (!string.Equals(depotContent, ""))
+                /*if (!string.IsNullOrEmpty(depotContent))
                 {
                     await File.WriteAllTextAsync(Path.Combine(path, "steam_settings", "depots.txt"), depotContent)
                         .ConfigureAwait(false);
                 }*/
                 
-                if (!string.Equals(appPathContent, ""))
+                
+                if (!string.IsNullOrEmpty(appPathContent))
                 {
                     await File.WriteAllTextAsync(Path.Combine(path, "steam_settings", "app_paths.txt"), appPathContent)
                         .ConfigureAwait(false);
+                }
+                else
+                {
+                    if (File.Exists(Path.Combine(path, "steam_settings", "app_paths.txt")))
+                        File.Delete(Path.Combine(path, "steam_settings", "app_paths.txt"));
                 }
                 _log.Info("Saved DLC settings.");
             }

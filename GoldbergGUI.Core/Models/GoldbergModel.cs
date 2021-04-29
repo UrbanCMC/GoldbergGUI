@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+// ReSharper disable ClassNeverInstantiated.Global
+// ReSharper disable UnusedMember.Global
 
 namespace GoldbergGUI.Core.Models
 {
@@ -67,8 +69,6 @@ namespace GoldbergGUI.Core.Models
 
     public class DlcApp : SteamApp
     {
-        //public int? DepotId { get; set; }
-        //public string DepotName { get; set; }
         /// <summary>
         /// Path to DLC (relative to Steam API DLL) (optional)
         /// </summary>
@@ -100,7 +100,7 @@ namespace GoldbergGUI.Core.Models
         public string Description { get; set; } 
 
         /// <summary>
-        /// Human readable name, as shown on webpage, game libary, overlay, etc.
+        /// Human readable name, as shown on webpage, game library, overlay, etc.
         /// </summary>
         [JsonPropertyName("displayName")]
         public string DisplayName { get; set; } 
@@ -120,6 +120,7 @@ namespace GoldbergGUI.Core.Models
         /// <summary>
         /// Path to icon when locked (grayed out).
         /// </summary>
+        // ReSharper disable once StringLiteralTypo
         [JsonPropertyName("icongray")]
         public string IconGray { get; set; } 
 
@@ -188,9 +189,10 @@ namespace GoldbergGUI.Core.Models
         // [JsonConverter(typeof(FluffyParseStringConverter))]
         public long DropMaxPerWindow { get; set; }
 
+        // ReSharper disable once StringLiteralTypo
         [JsonPropertyName("workshopid")]
         // [JsonConverter(typeof(FluffyParseStringConverter))]
-        public long Workshopid { get; set; }
+        public long WorkshopId { get; set; }
 
         [JsonPropertyName("tw_unique_to_own")]
         // [JsonConverter(typeof(PurpleParseStringConverter))]

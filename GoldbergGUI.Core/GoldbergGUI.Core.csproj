@@ -2,8 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <FileVersion>0.1.0</FileVersion>
-    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <FileVersion>0.2.0</FileVersion>
     <Company>Jeddunk</Company>
   </PropertyGroup>
 
