@@ -128,7 +128,7 @@ namespace GoldbergGUI.Core.Services
                     var cache = new HashSet<SteamApp>();
                     foreach (var steamApp in cacheRaw)
                     {
-                        steamApp.type = steamCache.SteamAppType;
+                        steamApp.AppType = steamCache.SteamAppType;
                         steamApp.ComparableName = PrepareStringToCompare(steamApp.Name);
                         cache.Add(steamApp);
                     }
@@ -141,7 +141,7 @@ namespace GoldbergGUI.Core.Services
         public async Task<IEnumerable<SteamApp>> GetListOfAppsByName(string name)
         {
             var query = await _db.Table<SteamApp>()
-                .Where(x => x.type == AppTypeGame).ToListAsync().ConfigureAwait(false);
+                .Where(x => x.AppType == AppTypeGame).ToListAsync().ConfigureAwait(false);
             var listOfAppsByName = query.Search(x => x.Name)
                 .SetCulture(StringComparison.OrdinalIgnoreCase)
                 .ContainingAll(name.Split(' '));
@@ -153,7 +153,7 @@ namespace GoldbergGUI.Core.Services
             _log.Info($"Trying to get app {name}");
             var comparableName = PrepareStringToCompare(name);
             var app = await _db.Table<SteamApp>()
-                .FirstOrDefaultAsync(x => x.type == AppTypeGame && x.ComparableName.Equals(comparableName))
+                .FirstOrDefaultAsync(x => x.AppType == AppTypeGame && x.ComparableName.Equals(comparableName))
                 .ConfigureAwait(false);
             if (app != null) _log.Info($"Successfully got app {app}");
             return app;
@@ -162,7 +162,7 @@ namespace GoldbergGUI.Core.Services
         public async Task<SteamApp> GetAppById(int appid)
         {
             _log.Info($"Trying to get app with ID {appid}");
-            var app = await _db.Table<SteamApp>().Where(x => x.type == AppTypeGame)
+            var app = await _db.Table<SteamApp>().Where(x => x.AppType == AppTypeGame)
                 .FirstOrDefaultAsync(x => x.AppId.Equals(appid)).ConfigureAwait(false);
             if (app != null) _log.Info($"Successfully got app {app}");
             return app;
@@ -180,10 +180,10 @@ namespace GoldbergGUI.Core.Services
                 {
                     steamAppDetails.DLC.ForEach(async x =>
                     {
-                        var result = await _db.Table<DlcApp>().Where(z => z.type == AppTypeDlc)
+                        var result = await _db.Table<SteamApp>().Where(z => z.AppType == AppTypeDlc)
                                          .FirstOrDefaultAsync(y => y.AppId.Equals(x)).ConfigureAwait(true)
-                                     ?? new DlcApp() {AppId = x, Name = $"Unknown DLC {x}"};
-                        dlcList.Add(result);
+                                     ?? new SteamApp() { AppId = x, Name = $"Unknown DLC {x}", ComparableName = $"unknownDlc{x}", AppType = AppTypeDlc };
+                        dlcList.Add(new DlcApp(result));
                         _log.Debug($"{result.AppId}={result.Name}");
                     });
 

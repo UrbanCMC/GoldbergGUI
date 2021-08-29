@@ -69,6 +69,18 @@ namespace GoldbergGUI.Core.Models
 
     public class DlcApp : SteamApp
     {
+        public DlcApp() { }
+
+        public DlcApp(SteamApp steamApp)
+        {
+            this.AppId = steamApp.AppId;
+            this.Name = steamApp.Name;
+            this.ComparableName = steamApp.ComparableName;
+            this.AppType = steamApp.AppType;
+            this.LastModified = steamApp.LastModified;
+            this.PriceChangeNumber = steamApp.PriceChangeNumber;
+        }
+
         /// <summary>
         /// Path to DLC (relative to Steam API DLL) (optional)
         /// </summary>

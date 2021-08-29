@@ -32,7 +32,7 @@ namespace GoldbergGUI.Core.Models
         /// App type (Game, DLC, ...)
         /// </summary>
         [Column("type")]
-        public string type { get; set; }
+        public string AppType { get; set; }
 
         public override string ToString()
         {
