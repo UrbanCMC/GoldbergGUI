@@ -1,3 +1,6 @@
+using GoldbergGUI.Core.Models;
+using GoldbergGUI.Core.Utils;
+using MvvmCross.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,9 +10,6 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
-using GoldbergGUI.Core.Models;
-using GoldbergGUI.Core.Utils;
-using MvvmCross.Logging;
 
 namespace GoldbergGUI.Core.Services
 {
@@ -249,7 +249,7 @@ namespace GoldbergGUI.Core.Services
                     {
                         var match = appPathExpression.Match(line);
                         if (!match.Success) continue;
-                        var i = dlcList.FindIndex(x => 
+                        var i = dlcList.FindIndex(x =>
                             x.AppId.Equals(Convert.ToInt32(match.Groups["id"].Value)));
                         dlcList[i].AppPath = match.Groups["appPath"].Value;
                     }
@@ -319,14 +319,14 @@ namespace GoldbergGUI.Core.Services
                 });
                 await File.WriteAllTextAsync(Path.Combine(path, "steam_settings", "DLC.txt"), dlcContent)
                     .ConfigureAwait(false);
-                
+
                 /*if (!string.IsNullOrEmpty(depotContent))
                 {
                     await File.WriteAllTextAsync(Path.Combine(path, "steam_settings", "depots.txt"), depotContent)
                         .ConfigureAwait(false);
                 }*/
-                
-                
+
+
                 if (!string.IsNullOrEmpty(appPathContent))
                 {
                     await File.WriteAllTextAsync(Path.Combine(path, "steam_settings", "app_paths.txt"), appPathContent)

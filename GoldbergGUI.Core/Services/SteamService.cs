@@ -1,10 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
 using GoldbergGUI.Core.Models;
@@ -13,6 +6,13 @@ using MvvmCross.Logging;
 using NinjaNye.SearchExtensions;
 using SQLite;
 using SteamStorefrontAPI;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net.Http;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace GoldbergGUI.Core.Services
 {
@@ -91,7 +91,7 @@ namespace GoldbergGUI.Core.Services
             static SteamApps DeserializeSteamApps(Type type, string cacheString)
             {
                 return type == typeof(SteamAppsV2)
-                    ? (SteamApps) JsonSerializer.Deserialize<SteamAppsV2>(cacheString)
+                    ? (SteamApps)JsonSerializer.Deserialize<SteamAppsV2>(cacheString)
                     : JsonSerializer.Deserialize<SteamAppsV1>(cacheString);
             }
 
@@ -196,7 +196,7 @@ namespace GoldbergGUI.Core.Services
 
                     // Return current list if we don't intend to use SteamDB
                     if (!useSteamDb) return dlcList;
-                    
+
                     try
                     {
                         var steamDbUri = new Uri($"https://steamdb.info/app/{steamApp.AppId}/dlc/");
@@ -229,7 +229,7 @@ namespace GoldbergGUI.Core.Services
                                 var dlcName = query3 != null
                                     ? query3[1].Text().Replace("\n", "").Trim()
                                     : $"Unknown DLC {dlcId}";
-                                var dlcApp = new DlcApp {AppId = Convert.ToInt32(dlcId), Name = dlcName};
+                                var dlcApp = new DlcApp { AppId = Convert.ToInt32(dlcId), Name = dlcName };
                                 var i = dlcList.FindIndex(x => x.AppId.Equals(dlcApp.AppId));
                                 if (i > -1)
                                 {

@@ -35,21 +35,21 @@ namespace GoldbergGUI.Core.Models
         /// List of DLC
         /// </summary>
         public List<DlcApp> DlcList { get; set; }
-        
+
         public List<int> Depots { get; set; }
-        
+
         public List<Group> SubscribedGroups { get; set; }
-        
+
         //public List<AppPath> AppPaths { get; set; }
-        
+
         public List<Achievement> Achievements { get; set; }
-        
+
         public List<Item> Items { get; set; }
-        
+
         public List<Leaderboard> Leaderboards { get; set; }
-        
+
         public List<Stat> Stats { get; set; }
-        
+
         // Add controller setting here!
         /// <summary>
         /// Set offline mode.
@@ -63,7 +63,7 @@ namespace GoldbergGUI.Core.Models
         /// Disable overlay (experimental only).
         /// </summary>
         public bool DisableOverlay { get; set; }
-        
+
         public GoldbergGlobalConfiguration OverwrittenGlobalConfiguration { get; set; }
     }
 
@@ -73,12 +73,12 @@ namespace GoldbergGUI.Core.Models
 
         public DlcApp(SteamApp steamApp)
         {
-            this.AppId = steamApp.AppId;
-            this.Name = steamApp.Name;
-            this.ComparableName = steamApp.ComparableName;
-            this.AppType = steamApp.AppType;
-            this.LastModified = steamApp.LastModified;
-            this.PriceChangeNumber = steamApp.PriceChangeNumber;
+            AppId = steamApp.AppId;
+            Name = steamApp.Name;
+            ComparableName = steamApp.ComparableName;
+            AppType = steamApp.AppType;
+            LastModified = steamApp.LastModified;
+            PriceChangeNumber = steamApp.PriceChangeNumber;
         }
 
         /// <summary>
@@ -109,40 +109,40 @@ namespace GoldbergGUI.Core.Models
         /// Achievement description.
         /// </summary>
         [JsonPropertyName("description")]
-        public string Description { get; set; } 
+        public string Description { get; set; }
 
         /// <summary>
         /// Human readable name, as shown on webpage, game library, overlay, etc.
         /// </summary>
         [JsonPropertyName("displayName")]
-        public string DisplayName { get; set; } 
+        public string DisplayName { get; set; }
 
         /// <summary>
         /// Is achievement hidden? 0 = false, else true.
         /// </summary>
         [JsonPropertyName("hidden")]
-        public int Hidden { get; set; } 
-        
+        public int Hidden { get; set; }
+
         /// <summary>
         /// Path to icon when unlocked (colored).
         /// </summary>
         [JsonPropertyName("icon")]
-        public string Icon { get; set; } 
+        public string Icon { get; set; }
 
         /// <summary>
         /// Path to icon when locked (grayed out).
         /// </summary>
         // ReSharper disable once StringLiteralTypo
         [JsonPropertyName("icongray")]
-        public string IconGray { get; set; } 
+        public string IconGray { get; set; }
 
         /// <summary>
         /// Internal name.
         /// </summary>
         [JsonPropertyName("name")]
-        public string Name { get; set; } 
+        public string Name { get; set; }
     }
-    
+
     public class Item
     {
         [JsonPropertyName("Timestamp")]

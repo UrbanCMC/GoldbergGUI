@@ -1,6 +1,6 @@
+using SQLite;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using SQLite;
 
 // ReSharper disable UnusedMember.Global
 // ReSharper disable ClassNeverInstantiated.Global

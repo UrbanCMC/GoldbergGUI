@@ -1,10 +1,10 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using GoldbergGUI.Core.Models;
 using MvvmCross.Commands;
 using MvvmCross.Logging;
 using MvvmCross.Navigation;
 using MvvmCross.ViewModels;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace GoldbergGUI.Core.ViewModels
 {
@@ -14,7 +14,7 @@ namespace GoldbergGUI.Core.ViewModels
         private readonly IMvxLog _log;
         private IEnumerable<SteamApp> _apps;
 
-        public SearchResultViewModel(IMvxLogProvider logProvider, IMvxNavigationService navigationService) : 
+        public SearchResultViewModel(IMvxLogProvider logProvider, IMvxNavigationService navigationService) :
             base(logProvider, navigationService)
         {
             _log = logProvider.GetLogFor(typeof(SearchResultViewModel));
@@ -25,7 +25,7 @@ namespace GoldbergGUI.Core.ViewModels
         {
             Apps = parameter;
         }
-        
+
         public IEnumerable<SteamApp> Apps
         {
             get => _apps;
@@ -35,7 +35,7 @@ namespace GoldbergGUI.Core.ViewModels
                 RaisePropertyChanged(() => Apps);
             }
         }
-        
+
         public SteamApp Selected
         {
             get;

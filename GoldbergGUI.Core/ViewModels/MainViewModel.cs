@@ -1,4 +1,12 @@
-﻿using System;
+﻿using GoldbergGUI.Core.Models;
+using GoldbergGUI.Core.Services;
+using GoldbergGUI.Core.Utils;
+using Microsoft.Win32;
+using MvvmCross.Commands;
+using MvvmCross.Logging;
+using MvvmCross.Navigation;
+using MvvmCross.ViewModels;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -9,14 +17,6 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
-using GoldbergGUI.Core.Models;
-using GoldbergGUI.Core.Services;
-using GoldbergGUI.Core.Utils;
-using Microsoft.Win32;
-using MvvmCross.Commands;
-using MvvmCross.Logging;
-using MvvmCross.Navigation;
-using MvvmCross.ViewModels;
 
 namespace GoldbergGUI.Core.ViewModels
 {
@@ -264,7 +264,7 @@ namespace GoldbergGUI.Core.ViewModels
 
         public static string AboutVersionText =>
             FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
-        
+
         public static GlobalHelp G => new GlobalHelp();
 
         // COMMANDS //
@@ -380,7 +380,7 @@ namespace GoldbergGUI.Core.ViewModels
 
             MainWindowEnabled = false;
             StatusText = "Trying to get list of DLCs...";
-            var listOfDlc = await _steam.GetListOfDlc(new SteamApp {AppId = AppId, Name = GameName}, true)
+            var listOfDlc = await _steam.GetListOfDlc(new SteamApp { AppId = AppId, Name = GameName }, true)
                 .ConfigureAwait(false);
             DLCs = new MvxObservableCollection<DlcApp>(listOfDlc);
             MainWindowEnabled = true;
@@ -402,8 +402,8 @@ namespace GoldbergGUI.Core.ViewModels
             _log.Info("Saving global settings...");
             var globalConfiguration = new GoldbergGlobalConfiguration
             {
-                AccountName = AccountName, 
-                UserSteamId = SteamId, 
+                AccountName = AccountName,
+                UserSteamId = SteamId,
                 Language = SelectedLanguage
             };
             await _goldberg.SetGlobalSettings(globalConfiguration).ConfigureAwait(false);
@@ -414,13 +414,13 @@ namespace GoldbergGUI.Core.ViewModels
             MainWindowEnabled = false;
             StatusText = "Saving...";
             await _goldberg.Save(dirPath, new GoldbergConfiguration
-                {
-                    AppId = AppId,
-                    DlcList = DLCs.ToList(),
-                    Offline = Offline,
-                    DisableNetworking = DisableNetworking,
-                    DisableOverlay = DisableOverlay
-                }
+            {
+                AppId = AppId,
+                DlcList = DLCs.ToList(),
+                Offline = Offline,
+                DisableNetworking = DisableNetworking,
+                DisableOverlay = DisableOverlay
+            }
             ).ConfigureAwait(false);
             GoldbergApplied = _goldberg.GoldbergApplied(dirPath);
             MainWindowEnabled = true;
@@ -478,13 +478,15 @@ namespace GoldbergGUI.Core.ViewModels
             {
                 var result = Clipboard.GetText();
                 var expression = new Regex(@"(?<id>.*) *= *(?<name>.*)");
-                var pastedDlc = (from line in result.Split(new[] {"\n", "\r\n"},
-                    StringSplitOptions.RemoveEmptyEntries) select expression.Match(line) into match
-                    where match.Success select new DlcApp
-                    {
-                        AppId = Convert.ToInt32(match.Groups["id"].Value), 
-                        Name = match.Groups["name"].Value
-                    }).ToList();
+                var pastedDlc = (from line in result.Split(new[] { "\n", "\r\n" },
+                    StringSplitOptions.RemoveEmptyEntries)
+                                 select expression.Match(line) into match
+                                 where match.Success
+                                 select new DlcApp
+                                 {
+                                     AppId = Convert.ToInt32(match.Groups["id"].Value),
+                                     Name = match.Groups["name"].Value
+                                 }).ToList();
                 if (pastedDlc.Count > 0)
                 {
                     DLCs.Clear();

@@ -6,6 +6,7 @@
     <UseWPF>true</UseWPF>
     <FileVersion>0.2.0</FileVersion>
     <Company>Jeddunk</Company>
+    <Platforms>AnyCPU;x86;x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
