@@ -208,6 +208,7 @@ namespace GoldbergGUI.Core.Services
         {
             _log.Info("Reading configuration...");
             var appId = -1;
+            var achievementList = new List<Achievement>();
             var dlcList = new List<DlcApp>();
             var steamAppidTxt = Path.Combine(path, "steam_appid.txt");
             if (File.Exists(steamAppidTxt))
@@ -219,6 +220,19 @@ namespace GoldbergGUI.Core.Services
             else
             {
                 _log.Info(@"""steam_appid.txt"" missing! Skipping...");
+            }
+
+            var achievementJson = Path.Combine(path, "steam_settings", "achievements.json");
+            if (File.Exists(achievementJson))
+            {
+                _log.Info("Getting achievements...");
+                var json = await File.ReadAllTextAsync(achievementJson)
+                    .ConfigureAwait(false);
+                achievementList = System.Text.Json.JsonSerializer.Deserialize<List<Achievement>>(json);
+            }
+            else
+            {
+                _log.Info(@"""steam_settings/achievements.json"" missing! Skipping...");
             }
 
             var dlcTxt = Path.Combine(path, "steam_settings", "DLC.txt");
@@ -263,6 +277,7 @@ namespace GoldbergGUI.Core.Services
             return new GoldbergConfiguration
             {
                 AppId = appId,
+                Achievements = achievementList,
                 DlcList = dlcList,
                 Offline = File.Exists(Path.Combine(path, "steam_settings", "offline.txt")),
                 DisableNetworking = File.Exists(Path.Combine(path, "steam_settings", "disable_networking.txt")),
@@ -302,6 +317,53 @@ namespace GoldbergGUI.Core.Services
             // create steam_appid.txt
             await File.WriteAllTextAsync(Path.Combine(path, "steam_appid.txt"), c.AppId.ToString())
                 .ConfigureAwait(false);
+
+            // Achievements + Images
+            if (c.Achievements.Count > 0)
+            {
+                _log.Info("Downloading images...");
+                var imagePath = Path.Combine(path, "steam_settings", "images");
+                Directory.CreateDirectory(imagePath);
+
+                foreach (var achievement in c.Achievements)
+                {
+                    await DownloadImageAsync(imagePath, achievement.Icon);
+                    await DownloadImageAsync(imagePath, achievement.IconGray);
+
+                    // Update achievement list to point to local images instead
+                    achievement.Icon = $"images/{Path.GetFileName(achievement.Icon)}";
+                    achievement.IconGray = $"images/{Path.GetFileName(achievement.IconGray)}";
+                }
+
+                _log.Info("Saving achievements...");
+
+                var achievementJson = System.Text.Json.JsonSerializer.Serialize(
+                    c.Achievements,
+                    new System.Text.Json.JsonSerializerOptions
+                    {
+                        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                        WriteIndented = true
+                    });
+                await File.WriteAllTextAsync(Path.Combine(path, "steam_settings", "achievements.json"), achievementJson)
+                    .ConfigureAwait(false);
+
+                _log.Info("Finished saving achievements.");
+            }
+            else
+            {
+                _log.Info("No achievements set! Removing achievement files...");
+                var imagePath = Path.Combine(path, "steam_settings", "images");
+                if (Directory.Exists(imagePath))
+                {
+                    Directory.Delete(imagePath);
+                }
+                var achievementPath = Path.Combine(path, "steam_settings", "achievements");
+                if (File.Exists(achievementPath))
+                {
+                    File.Delete(achievementPath);
+                }
+                _log.Info("Removed achievement files.");
+            }
 
             // DLC + App path
             if (c.DlcList.Count > 0)
@@ -620,6 +682,23 @@ namespace GoldbergGUI.Core.Services
             }
 
             return success;
+        }
+
+        private async Task DownloadImageAsync(string imageFolder, string imageUrl)
+        {
+            var fileName = Path.GetFileName(imageUrl);
+            var targetPath = Path.Combine(imageFolder, fileName);
+            if (File.Exists(targetPath))
+            {
+                return;
+            }
+            else if (imageUrl.StartsWith("images/"))
+            {
+                _log.Warn($"Previously downloaded image '{imageUrl}' is now missing!");
+            }
+
+            var wc = new System.Net.WebClient();
+            await wc.DownloadFileTaskAsync(new Uri(imageUrl, UriKind.Absolute), targetPath);
         }
     }
 }

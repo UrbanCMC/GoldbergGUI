@@ -30,6 +30,7 @@ namespace GoldbergGUI.Core.ViewModels
         private int _appId;
 
         //private SteamApp _currentGame;
+        private List<Achievement> achievements;
         private ObservableCollection<DlcApp> _dlcs;
         private string _accountName;
         private long _steamId;
@@ -368,6 +369,32 @@ namespace GoldbergGUI.Core.ViewModels
             if (steamApp != null) GameName = steamApp.Name;
         }
 
+        public IMvxCommand GetListOfAchievementsCommand => new MvxAsyncCommand(GetListOfAchievements);
+
+        private async Task GetListOfAchievements()
+        {
+            if (AppId <= 0)
+            {
+                _log.Error("Invalid Steam App!");
+                return;
+            }
+
+            MainWindowEnabled = false;
+            StatusText = "Trying to get list of achievements...";
+            achievements = await _steam.GetListOfAchievements(new SteamApp { AppId = AppId, Name = GameName });
+            MainWindowEnabled = true;
+
+            if (achievements.Count > 0)
+            {
+                var empty = achievements.Count == 1 ? "" : "s";
+                StatusText = $"Successfully got {achievements.Count} achievement{empty}! Ready.";
+            }
+            else
+            {
+                StatusText = "No achievements found! Ready.";
+            }
+        }
+
         public IMvxCommand GetListOfDlcCommand => new MvxAsyncCommand(GetListOfDlc);
 
         private async Task GetListOfDlc()
@@ -416,6 +443,7 @@ namespace GoldbergGUI.Core.ViewModels
             await _goldberg.Save(dirPath, new GoldbergConfiguration
             {
                 AppId = AppId,
+                Achievements = achievements.ToList(),
                 DlcList = DLCs.ToList(),
                 Offline = Offline,
                 DisableNetworking = DisableNetworking,
@@ -526,6 +554,7 @@ namespace GoldbergGUI.Core.ViewModels
             DllPath = "Path to game's steam_api(64).dll...";
             GameName = "Game name...";
             AppId = -1;
+            achievements = new List<Achievement>();
             DLCs = new ObservableCollection<DlcApp>();
             AccountName = "Account name...";
             SteamId = -1;
@@ -546,6 +575,7 @@ namespace GoldbergGUI.Core.ViewModels
         private void SetFormFromConfig(GoldbergConfiguration config)
         {
             AppId = config.AppId;
+            achievements = new List<Achievement>(config.Achievements);
             DLCs = new ObservableCollection<DlcApp>(config.DlcList);
             Offline = config.Offline;
             DisableNetworking = config.DisableNetworking;

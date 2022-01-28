@@ -23,6 +23,7 @@ namespace GoldbergGUI.Core.Services
         public Task<IEnumerable<SteamApp>> GetListOfAppsByName(string name);
         public Task<SteamApp> GetAppByName(string name);
         public Task<SteamApp> GetAppById(int appid);
+        public Task<List<Achievement>> GetListOfAchievements(SteamApp steamApp);
         public Task<List<DlcApp>> GetListOfDlc(SteamApp steamApp, bool useSteamDb);
     }
 
@@ -81,6 +82,7 @@ namespace GoldbergGUI.Core.Services
         private const string AppTypeGame = "game";
         private const string AppTypeDlc = "dlc";
         private const string Database = "steamapps.cache";
+        private const string GameSchemaUrl = "https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2/";
 
         private IMvxLog _log;
 
@@ -166,6 +168,32 @@ namespace GoldbergGUI.Core.Services
                 .FirstOrDefaultAsync(x => x.AppId.Equals(appid)).ConfigureAwait(false);
             if (app != null) _log.Info($"Successfully got app {app}");
             return app;
+        }
+
+        public async Task<List<Achievement>> GetListOfAchievements(SteamApp steamApp)
+        {
+            var achievementList = new List<Achievement>();
+            if (steamApp == null)
+            {
+                return achievementList;
+            }
+
+            _log.Info($"Getting achievements for App {steamApp}");
+
+            var client = new HttpClient();
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+            var apiUrl = $"{GameSchemaUrl}?key={Secrets.SteamWebApiKey()}&appid={steamApp.AppId}&l=en";
+
+            var response = await client.GetAsync(apiUrl);
+            var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            var jsonResponse = JsonDocument.Parse(responseBody);
+            var achievementData = jsonResponse.RootElement.GetProperty("game")
+                .GetProperty("availableGameStats")
+                .GetProperty("achievements");
+
+            achievementList = JsonSerializer.Deserialize<List<Achievement>>(achievementData.GetRawText());
+            return achievementList;
         }
 
         public async Task<List<DlcApp>> GetListOfDlc(SteamApp steamApp, bool useSteamDb)

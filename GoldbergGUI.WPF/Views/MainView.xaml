@@ -61,8 +61,16 @@
                                         <DataGridTextColumn Header="App Path" Binding="{Binding AppPath}" Width="*" Visibility="{Binding Source={x:Reference ShowOptionalDlcSettings}, Path=IsChecked, Converter={StaticResource B2V}}" />
                                     </DataGrid.Columns>
                                 </DataGrid>
-                                <CheckBox Grid.Row="1" x:Name="ShowOptionalDlcSettings" Margin="0,5,0,0" Content="Show optional settings"/>
-                                <Button Content="Get _DLCs for AppID" Command="{Binding GetListOfDlcCommand}" Grid.Row="1" Width="120" HorizontalAlignment="Right" Margin="0,5,0,0" Height="20"/>
+                                <Grid Grid.Row="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="1" x:Name="ShowOptionalDlcSettings" Margin="0,5,0,0" Content="Show optional settings"/>
+                                    <Button Grid.Column="1" Content="Get _Achievements for AppID" Command="{Binding GetListOfAchievementsCommand}" Margin="0,5,20,0" Width="200" HorizontalAlignment="Right" />
+                                    <Button Grid.Column="2" Content="Get _DLCs for AppID" Command="{Binding GetListOfDlcCommand}" Width="120" HorizontalAlignment="Right" Margin="0,5,0,0" Height="20"/>
+                                </Grid>
                             </Grid>
                         </GroupBox>
                     </Grid>
