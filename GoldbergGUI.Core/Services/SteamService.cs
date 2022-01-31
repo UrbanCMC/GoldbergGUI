@@ -204,7 +204,11 @@ namespace GoldbergGUI.Core.Services
                 _log.Info($"Get DLC for App {steamApp}");
                 var task = AppDetails.GetAsync(steamApp.AppId);
                 var steamAppDetails = await task.ConfigureAwait(true);
-                if (steamAppDetails.Type == AppTypeGame)
+                if (steamAppDetails == null)
+                {
+                    _log.Warn("Could not get DLC: Steam API didn't return app details (possible region-block)!");
+                }
+                else if (steamAppDetails.Type == AppTypeGame)
                 {
                     steamAppDetails.DLC.ForEach(async x =>
                     {
