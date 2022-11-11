@@ -500,8 +500,8 @@ namespace GoldbergGUI.Core.Services
                 try
                 {
                     _log.Info("Check if update is needed...");
-                    var jobIdLocal = Convert.ToInt32(File.ReadLines(jobIdPath).First().Trim());
-                    var jobIdRemote = Convert.ToInt32(match.Groups["jobid"].Value);
+                    var jobIdLocal = File.ReadLines(jobIdPath).First().Trim();
+                    var jobIdRemote = match.Groups["jobid"].Value;
                     _log.Debug($"job_id: local {jobIdLocal}; remote {jobIdRemote}");
                     if (jobIdLocal.Equals(jobIdRemote))
                     {
