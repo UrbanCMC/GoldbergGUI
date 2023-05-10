@@ -391,7 +391,7 @@ namespace GoldbergGUI.Core.ViewModels
             }
             else
             {
-                StatusText = "No achievements found! Ready.";
+                StatusText = "No achievements found, or Steam stats for game are restricted! Ready.";
             }
         }
 

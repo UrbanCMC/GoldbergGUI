@@ -357,7 +357,7 @@ namespace GoldbergGUI.Core.Services
                 {
                     Directory.Delete(imagePath);
                 }
-                var achievementPath = Path.Combine(path, "steam_settings", "achievements");
+                var achievementPath = Path.Combine(path, "steam_settings", "achievements.json");
                 if (File.Exists(achievementPath))
                 {
                     File.Delete(achievementPath);

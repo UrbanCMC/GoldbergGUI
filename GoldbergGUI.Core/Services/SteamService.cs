@@ -186,6 +186,10 @@ namespace GoldbergGUI.Core.Services
 
             var response = await client.GetAsync(apiUrl);
             var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (!responseBody.Contains("achievements", StringComparison.OrdinalIgnoreCase))
+            {
+                return new List<Achievement>();
+            }
 
             var jsonResponse = JsonDocument.Parse(responseBody);
             var achievementData = jsonResponse.RootElement.GetProperty("game")
