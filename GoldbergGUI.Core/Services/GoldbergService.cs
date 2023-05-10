@@ -211,6 +211,11 @@ namespace GoldbergGUI.Core.Services
             var achievementList = new List<Achievement>();
             var dlcList = new List<DlcApp>();
             var steamAppidTxt = Path.Combine(path, "steam_appid.txt");
+            if (!File.Exists(steamAppidTxt) && Settings.Instance.SaveSteamAppIdToSteamSettingsFolder)
+            {
+                steamAppidTxt = Path.Combine(path, "steam_settings", "steam_appid.txt");
+            }
+
             if (File.Exists(steamAppidTxt))
             {
                 _log.Info("Getting AppID...");
@@ -315,7 +320,9 @@ namespace GoldbergGUI.Core.Services
             }
 
             // create steam_appid.txt
-            await File.WriteAllTextAsync(Path.Combine(path, "steam_appid.txt"), c.AppId.ToString())
+            await File.WriteAllTextAsync(Path.Combine(path,
+                    Settings.Instance.SaveSteamAppIdToSteamSettingsFolder ? "steam_settings" : "",
+                    "steam_appid.txt"), c.AppId.ToString())
                 .ConfigureAwait(false);
 
             // Achievements + Images
@@ -476,7 +483,9 @@ namespace GoldbergGUI.Core.Services
         public bool GoldbergApplied(string path)
         {
             var steamSettingsDirExists = Directory.Exists(Path.Combine(path, "steam_settings"));
-            var steamAppIdTxtExists = File.Exists(Path.Combine(path, "steam_appid.txt"));
+            var steamAppIdTxtExists = File.Exists(Path.Combine(path,
+                Settings.Instance.SaveSteamAppIdToSteamSettingsFolder ? "steam_settings" : "",
+                "steam_appid.txt"));
             _log.Debug($"Goldberg applied? {(steamSettingsDirExists && steamAppIdTxtExists).ToString()}");
             return steamSettingsDirExists && steamAppIdTxtExists;
         }
@@ -513,6 +522,12 @@ namespace GoldbergGUI.Core.Services
                 {
                     _log.Error("An error occured, local Goldberg setup might be broken!");
                 }
+            }
+
+            if (!Settings.Instance.AutomaticallyDownloadLatestGoldbergBuild && Directory.Exists(_goldbergPath))
+            {
+                _log.Info("Automatic update of Goldberg emulator is disabled. Skipping...");
+                return false;
             }
 
             _log.Info("Starting download...");

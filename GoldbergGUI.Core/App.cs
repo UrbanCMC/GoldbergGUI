@@ -15,6 +15,15 @@ namespace GoldbergGUI.Core
                 .RegisterAsLazySingleton();
             //RegisterAppStart<MainViewModel>();
             RegisterCustomAppStart<CustomMvxAppStart<MainViewModel>>();
+
+            LoadSettings();
+        }
+
+        private void LoadSettings()
+        {
+            // Call both read and write to ensure any new settings are added to the file
+            Settings.Instance.Read();
+            Settings.Instance.Write();
         }
     }
 }
