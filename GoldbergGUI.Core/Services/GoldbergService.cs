@@ -334,12 +334,12 @@ namespace GoldbergGUI.Core.Services
 
                 foreach (var achievement in c.Achievements)
                 {
-                    await DownloadImageAsync(imagePath, achievement.Icon);
-                    await DownloadImageAsync(imagePath, achievement.IconGray);
+                    await DownloadImageAsync(imagePath, achievement.Icon, achievement.Name);
+                    await DownloadImageAsync(imagePath, achievement.IconGray, $"{achievement.Name}_gray");
 
                     // Update achievement list to point to local images instead
-                    achievement.Icon = $"images/{Path.GetFileName(achievement.Icon)}";
-                    achievement.IconGray = $"images/{Path.GetFileName(achievement.IconGray)}";
+                    achievement.Icon = $"images/{achievement.Name}{Path.GetExtension(achievement.Icon)}";
+                    achievement.IconGray = $"images/{achievement.Name}_gray{Path.GetExtension(achievement.IconGray)}";
                 }
 
                 _log.Info("Saving achievements...");
@@ -699,15 +699,15 @@ namespace GoldbergGUI.Core.Services
             return success;
         }
 
-        private async Task DownloadImageAsync(string imageFolder, string imageUrl)
+        private async Task DownloadImageAsync(string imageFolder, string imageUrl, string fileName)
         {
-            var fileName = Path.GetFileName(imageUrl);
-            var targetPath = Path.Combine(imageFolder, fileName);
+            var targetPath = Path.Combine(imageFolder, fileName + Path.GetExtension(imageUrl));
             if (File.Exists(targetPath))
             {
                 return;
             }
-            else if (imageUrl.StartsWith("images/"))
+
+            if (imageUrl.StartsWith("images/"))
             {
                 _log.Warn($"Previously downloaded image '{imageUrl}' is now missing!");
             }
