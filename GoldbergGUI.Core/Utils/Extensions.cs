@@ -16,5 +16,10 @@ namespace GoldbergGUI.Core.Utils
             await download.CopyToAsync(destination, cancelToken).ConfigureAwait(false);
             if (destination.CanSeek) destination.Position = 0;
         }
+
+        public static string ToSanitizedFileName(this string text)
+        {
+            return string.Join("_", text.Split(Path.GetInvalidFileNameChars()));
+        }
     }
 }

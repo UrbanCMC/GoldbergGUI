@@ -334,12 +334,13 @@ namespace GoldbergGUI.Core.Services
 
                 foreach (var achievement in c.Achievements)
                 {
-                    await DownloadImageAsync(imagePath, achievement.Icon, achievement.Name);
-                    await DownloadImageAsync(imagePath, achievement.IconGray, $"{achievement.Name}_gray");
+                    var fileName = achievement.Name.ToSanitizedFileName();
+                    await DownloadImageAsync(imagePath, achievement.Icon, fileName);
+                    await DownloadImageAsync(imagePath, achievement.IconGray, $"{fileName}_gray");
 
                     // Update achievement list to point to local images instead
-                    achievement.Icon = $"images/{achievement.Name}{Path.GetExtension(achievement.Icon)}";
-                    achievement.IconGray = $"images/{achievement.Name}_gray{Path.GetExtension(achievement.IconGray)}";
+                    achievement.Icon = $"images/{fileName}{Path.GetExtension(achievement.Icon)}";
+                    achievement.IconGray = $"images/{fileName}_gray{Path.GetExtension(achievement.IconGray)}";
                 }
 
                 _log.Info("Saving achievements...");
